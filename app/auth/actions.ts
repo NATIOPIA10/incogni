@@ -58,5 +58,5 @@ export async function signup(formData: FormData) {
 
   // After signup, redirect to onboarding
   revalidatePath('/', 'layout')
-  redirect('/onboarding/verification')
+  redirect('/onboarding/profile')
 }
