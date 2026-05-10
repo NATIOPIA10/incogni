@@ -35,6 +35,7 @@ export default function ChatRoomClient({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const [isUploading, setIsUploading] = useState(false)
+  const [pendingImage, setPendingImage] = useState<string | null>(null)
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -101,13 +102,14 @@ export default function ChatRoomClient({
     const newMessage = {
       match_id: matchId,
       sender_id: currentUser.id,
-      content: input,
+      content: pendingImage ? `${pendingImage}||${input}` : input,
     }
 
     // Optimistic UI
     const optimisticMsg = { ...newMessage, id: Date.now(), created_at: new Date().toISOString() }
     setMessages(prev => [...prev, optimisticMsg])
     setInput("")
+    setPendingImage(null)
 
     const { error } = await supabase
       .from("messages")
@@ -143,16 +145,8 @@ export default function ChatRoomClient({
       .from('chat_images')
       .getPublicUrl(filePath)
 
-    // Send the image URL as a message
-    const newMessage = {
-      match_id: matchId,
-      sender_id: currentUser.id,
-      content: publicUrl, // The content is the URL
-    }
-
-    await supabase.from("messages").insert(newMessage)
+    setPendingImage(publicUrl)
     setIsUploading(false)
-    router.refresh()
   }
 
   const handleAccept = async () => {
@@ -205,7 +199,18 @@ export default function ChatRoomClient({
                   ? "bg-[#A855F7]/20 border-[#A855F7]/30 rounded-tr-none text-white shadow-[#A855F7]/5" 
                   : "bg-white/5 border-white/10 rounded-tl-none text-[#978d9a]"
               }`}>
-                {msg.content.startsWith('http') ? (
+                {msg.content.includes('||') ? (
+                  <div className="space-y-2">
+                    <img 
+                      src={msg.content.split('||')[0]} 
+                      alt="Shared resonance" 
+                      className="max-w-full rounded-lg border border-white/10 shadow-sm"
+                    />
+                    {msg.content.split('||')[1] && (
+                      <p className="text-sm leading-relaxed">{msg.content.split('||')[1]}</p>
+                    )}
+                  </div>
+                ) : msg.content.startsWith('http') ? (
                   <img 
                     src={msg.content} 
                     alt="Shared image" 
@@ -255,6 +260,19 @@ export default function ChatRoomClient({
       </div>
 
       <div className="p-4 bg-[#0B0E14]/80 backdrop-blur-md border-t border-white/5 sticky bottom-0 z-20 pb-28">
+        {pendingImage && (
+          <div className="max-w-md mx-auto mb-3 relative group">
+            <div className="w-20 h-20 rounded-xl overflow-hidden border-2 border-[#A855F7] shadow-lg shadow-[#A855F7]/20">
+              <img src={pendingImage} alt="Preview" className="w-full h-full object-cover" />
+            </div>
+            <button 
+              onClick={() => setPendingImage(null)}
+              className="absolute -top-2 -left-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs shadow-lg hover:bg-red-600 transition-colors"
+            >
+              <XCircle className="w-4 h-4" />
+            </button>
+          </div>
+        )}
         <div className="flex items-center gap-2 max-w-md mx-auto">
           <input 
             type="file" 
