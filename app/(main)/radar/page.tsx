@@ -105,20 +105,21 @@ export default async function RadarPage() {
   const radarProfiles: RadarProfile[] = (others ?? [])
     // 4. Intelligent Filtering (Distance, Gender & Preference)
     .filter(p => {
-      // Distance filter based on resonance radius
+      /* Distance filter based on resonance radius (DISABLED FOR DEBUG)
       if (myProfile?.geo_bucket && p.geo_bucket) {
         const [myLat, myLng] = myProfile.geo_bucket.split(",").map(Number)
         const [theirLat, theirLng] = p.geo_bucket.split(",").map(Number)
         const diff = Math.sqrt(Math.pow(myLat - theirLat, 2) + Math.pow(myLng - theirLng, 2))
         
-        // 0.01 degrees is roughly 1.1km
         if (diff > (myRadius * 0.01)) return false
       }
+      */
 
-      // Gender preference filter
+      /* Gender preference filter (DISABLED FOR DEBUG)
       if (myProfile?.preferred_gender && myProfile.preferred_gender !== 'everyone') {
         return p.gender === myProfile.preferred_gender
       }
+      */
       return true
     })
     // Only include users who have at least a display name (so they've started onboarding)
