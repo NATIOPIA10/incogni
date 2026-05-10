@@ -61,8 +61,9 @@ export default async function RadarPage() {
       .from("profiles")
       .select("id, personality_vibes, seeking_vibes, verification_status, geo_bucket, privacy_mode, trust_score, gender, display_name, age")
       .neq("id", user.id)
-      .not("verification_status", "eq", "rejected") // Show pending/verified, only hide rejected
-      .or("privacy_mode.eq.false,privacy_mode.is.null") // Handle NULL as false for visibility
+      .eq("role", "user") // Only show regular users on the radar
+      .not("verification_status", "eq", "rejected") 
+      .or("privacy_mode.eq.false,privacy_mode.is.null")
     
     if (othersError) {
       console.error("Error fetching other profiles:", othersError);
