@@ -32,24 +32,20 @@ export default function SettingsClient({ initialConfig }: SettingsClientProps) {
   const [authEnforcement, setAuthEnforcement] = useState(getConfig('auth_enforcement', 'standard'))
   const [isSaving, setIsSaving] = useState(false)
 
-  const handleToggle = async (key: string, value: boolean, setter: (v: boolean) => void) => {
-    setter(value)
-    try {
-      await updateSystemSetting(key, value)
-    } catch (err) {
-      alert("Failed to update setting. Ensure you are a Super Admin.")
-      setter(!value) // Revert
-    }
-  }
-
   const handleSaveAll = async () => {
     setIsSaving(true)
     try {
-      await updateSystemSetting('session_timeout', sessionTimeout)
-      await updateSystemSetting('auth_enforcement', authEnforcement)
-      alert("System configuration updated successfully.")
+      // Save everything at once
+      await Promise.all([
+        updateSystemSetting('maintenance_mode', maintenanceMode),
+        updateSystemSetting('allow_signups', allowSignups),
+        updateSystemSetting('ai_moderation_enabled', aiModeration),
+        updateSystemSetting('session_timeout', sessionTimeout),
+        updateSystemSetting('auth_enforcement', authEnforcement)
+      ])
+      alert("All system configuration changes saved successfully.")
     } catch (err) {
-      alert("Failed to save changes.")
+      alert("Failed to save changes. Ensure you have Super Admin permissions.")
     } finally {
       setIsSaving(false)
     }
@@ -92,33 +88,33 @@ export default function SettingsClient({ initialConfig }: SettingsClientProps) {
                   <p className="text-xs text-[#978d9a] mt-1">Take the entire network offline for updates.</p>
                 </div>
                 <button 
-                  onClick={() => handleToggle('maintenance_mode', !maintenanceMode, setMaintenanceMode)}
+                  onClick={() => setMaintenanceMode(!maintenanceMode)}
                   className={`w-12 h-6 rounded-full transition-colors relative ${maintenanceMode ? 'bg-[#F43F5E]' : 'bg-white/10'}`}
                 >
                   <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${maintenanceMode ? 'left-7' : 'left-1'}`} />
                 </button>
               </div>
-
+ 
               <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5">
                 <div>
                   <h3 className="text-sm font-semibold text-white">Allow New Signups</h3>
                   <p className="text-xs text-[#978d9a] mt-1">Enable or disable new identity registration.</p>
                 </div>
                 <button 
-                  onClick={() => handleToggle('allow_signups', !allowSignups, setAllowSignups)}
+                  onClick={() => setAllowSignups(!allowSignups)}
                   className={`w-12 h-6 rounded-full transition-colors relative ${allowSignups ? 'bg-[#10B981]' : 'bg-white/10'}`}
                 >
                   <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${allowSignups ? 'left-7' : 'left-1'}`} />
                 </button>
               </div>
-
+ 
               <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5">
                 <div>
                   <h3 className="text-sm font-semibold text-white">AI Content Moderation</h3>
                   <p className="text-xs text-[#978d9a] mt-1">Automatically flag toxic interactions using AI.</p>
                 </div>
                 <button 
-                  onClick={() => handleToggle('ai_moderation_enabled', !aiModeration, setAiModeration)}
+                  onClick={() => setAiModeration(!aiModeration)}
                   className={`w-12 h-6 rounded-full transition-colors relative ${aiModeration ? 'bg-[#A855F7]' : 'bg-white/10'}`}
                 >
                   <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${aiModeration ? 'left-7' : 'left-1'}`} />
