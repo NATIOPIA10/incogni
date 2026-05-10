@@ -64,18 +64,17 @@ export default async function RadarPage() {
     // 3. Fetch other users
     const { data: othersData, error: othersError } = await supabase
       .from("profiles")
-      .select("id, personality_vibes, seeking_vibes, verification_status, geo_bucket, privacy_mode, trust_score, gender, display_name, age")
+      .select("id, personality_vibes, seeking_vibes, verification_status, geo_bucket, privacy_mode, trust_score, gender, display_name, age, role")
       .neq("id", user.id)
-      .neq("id", "81f9ea7d-e9eb-47a6-8668-13d584ed1435") // Always hide the main admin account
-      .eq("role", "user") // Only show regular users on the radar
-      .not("verification_status", "eq", "rejected") 
-      .or("privacy_mode.eq.false,privacy_mode.is.null")
     
     if (othersError) {
       console.error("Error fetching other profiles:", othersError);
     } else {
       others = othersData || [];
-      console.log(`Radar: Fetched ${others.length} potential users (excluding self and pending)`);
+      console.log(`Radar: Fetched ${others.length} profiles from DB (excluding self)`);
+      others.forEach(p => {
+        console.log(`Profile Scan - ID: ${p.id.slice(0,8)}, Name: ${p.display_name || 'N/A'}, Role: ${p.role}, Status: ${p.verification_status}, Privacy: ${p.privacy_mode}`);
+      });
     }
   } catch (err: any) {
     console.error("Unexpected fetch error:", err);
