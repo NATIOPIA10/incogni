@@ -38,8 +38,8 @@ function getVibeColor(compat: number) {
 
 // Proximity logic based on buckets
 function getProximityLabel(myBucket?: string, theirBucket?: string) {
-  if (!myBucket || !theirBucket) return { label: "Nearby", distance: null, direction: "" }
-  if (myBucket === theirBucket) return { label: "Very Close", distance: 15, direction: "Nearby" }
+  if (!myBucket || !theirBucket) return { label: "Nearby", meters: null, cardinal: "" }
+  if (myBucket === theirBucket) return { label: "Very Close", meters: 15, cardinal: "Nearby" }
   
   const [myLat, myLng] = myBucket.split(",").map(Number)
   const [theirLat, theirLng] = theirBucket.split(",").map(Number)
