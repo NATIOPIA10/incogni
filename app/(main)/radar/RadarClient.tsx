@@ -25,9 +25,10 @@ export type RadarProfile = {
 
 // Calculate real position based on geographic coordinates
 function getRealPosition(myBucket: string | undefined, theirBucket: string | undefined, index: number, id: string) {
+  const hash = id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0)
+
   if (!myBucket || !theirBucket) {
     // fallback if no location
-    const hash = id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0)
     const angle = ((hash * 137.5 + index * 60) % 360) // golden-angle spread
     const distance = 30 + (hash % 40) // 30–70% of radar radius
     return { angle, distance }
@@ -39,23 +40,39 @@ function getRealPosition(myBucket: string | undefined, theirBucket: string | und
   const dLat = theirLat - myLat
   const dLng = theirLng - myLng
   
-  // Math.atan2(y, x). Standard UI: y is down, x is right.
-  // Geographic: North is up, East is right.
-  // To map North to top of UI, y should be -dLat.
-  const angle = (Math.atan2(-dLat, dLng) * 180) / Math.PI
-
   // Calculate distance in meters
   const diff = Math.sqrt(Math.pow(dLat, 2) + Math.pow(dLng, 2))
   const meters = diff * 111000
+
+  // Math.atan2(y, x). Standard UI: y is down, x is right.
+  // Geographic: North is up, East is right.
+  // To map North to top of UI, y should be -dLat.
+  let angle = 0;
   
+  if (meters === 0) {
+    // If they are exactly on top of me (same coordinates), give them a scattered angle
+    angle = (hash * 137.5) % 360
+  } else {
+    angle = (Math.atan2(-dLat, dLng) * 180) / Math.PI
+    // Add small deterministic jitter (-15 to 15 degrees) so close users don't perfectly overlap
+    angle += (hash % 30) - 15
+  }
+
   // Assume radar represents a 2km radius (2000 meters)
   const maxRangeMeters = 2000
   let distancePercentage = (meters / maxRangeMeters) * 100
   
+  // Add small deterministic distance jitter (-3% to +3%)
+  distancePercentage += (hash % 7) - 3
+
   // Clamp so they don't fall outside the radar
   if (distancePercentage > 95) distancePercentage = 95
+  
   // Minimum distance so it doesn't overlap the center "me" dot
-  if (distancePercentage < 15) distancePercentage = 15 
+  // If they are very close, scatter them slightly based on hash
+  if (distancePercentage < 15) {
+    distancePercentage = 15 + (hash % 10) 
+  }
   
   return { angle, distance: distancePercentage }
 }
