@@ -7,6 +7,7 @@ import { GlassCard } from "@/components/ui/GlassCard"
 import { X, Zap, ShieldCheck, ShieldAlert, Shield } from "lucide-react"
 import Link from "next/link"
 import { updateLocation } from "@/app/actions/location"
+import { initiateMatch } from "@/app/actions/match"
 import { TrustMeter } from "@/components/ui/TrustMeter"
 import { RefreshCw } from "lucide-react"
 
