@@ -3,15 +3,19 @@
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { GlassCard } from "@/components/ui/GlassCard"
-import { X, Zap } from "lucide-react"
+import { X, Zap, ShieldCheck, ShieldAlert, Shield } from "lucide-react"
 import Link from "next/link"
 import { initiateMatch } from "@/app/actions/match"
+import { TrustMeter } from "@/components/ui/TrustMeter"
 
 export type RadarProfile = {
   id: string
   personality_vibes: string[]
   seeking_vibes: string[]
   compatibility: number
+  geo_bucket?: string
+  trust_score?: number
+  gender?: string
 }
 
 // Deterministically scatter profiles across angles/distances based on their id
@@ -23,15 +27,33 @@ function getPosition(id: string, index: number) {
   return { angle, distance }
 }
 
-// Pick a colour for the glow based on compatibility
-function getVibeColor(compat: number) {
-  if (compat >= 70) return "#A855F7" // purple – high match
-  if (compat >= 40) return "#00D1FF" // cyan  – medium
-  return "#10B981"                   // green – low
+// Proximity logic based on buckets
+function getProximityLabel(myBucket?: string, theirBucket?: string) {
+  if (!myBucket || !theirBucket) return "Nearby"
+  if (myBucket === theirBucket) return "Very Close"
+  
+  // Basic string comparison of buckets (since they are lat,lng rounded)
+  const [myLat, myLng] = myBucket.split(",").map(Number)
+  const [theirLat, theirLng] = theirBucket.split(",").map(Number)
+  
+  const diff = Math.sqrt(Math.pow(myLat - theirLat, 2) + Math.pow(myLng - theirLng, 2))
+  
+  if (diff < 0.005) return "On Campus"
+  return "Nearby"
 }
 
-export default function RadarClient({ profiles, myVibes }: { profiles: RadarProfile[]; myVibes: string[] }) {
+export default function RadarClient({ 
+  profiles, 
+  myVibes, 
+  myBucket 
+}: { 
+  profiles: RadarProfile[]; 
+  myVibes: string[];
+  myBucket?: string;
+}) {
   const [selected, setSelected] = useState<RadarProfile | null>(null)
+  const [message, setMessage] = useState("")
+  const [sending, setSending] = useState(false)
 
   // Close the detail card when tapping the backdrop
   const close = () => setSelected(null)
@@ -164,14 +186,38 @@ export default function RadarClient({ profiles, myVibes }: { profiles: RadarProf
                     <span className="font-semibold text-white text-lg">
                       {selected.compatibility}% Resonance
                     </span>
+                    <div className="flex items-center gap-1.5 bg-white/5 px-2 py-0.5 rounded-md border border-white/10">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#00D1FF] animate-pulse" />
+                      <span className="text-[10px] text-[#00D1FF] font-medium uppercase tracking-tighter">
+                        {getProximityLabel(myBucket, selected.geo_bucket)}
+                      </span>
+                    </div>
                   </div>
-                  <button
-                    onClick={close}
-                    className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
-                    aria-label="Close"
-                  >
-                    <X className="w-4 h-4 text-white" />
-                  </button>
+                    </button>
+                </div>
+
+                {/* Trust Meter */}
+                <div className="mb-6 p-3 bg-white/5 rounded-xl border border-white/10">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-1.5">
+                      {selected.trust_score && selected.trust_score >= 80 ? (
+                        <ShieldCheck className="w-4 h-4 text-[#10B981]" />
+                      ) : selected.trust_score && selected.trust_score >= 40 ? (
+                        <Shield className="w-4 h-4 text-[#00D1FF]" />
+                      ) : (
+                        <ShieldAlert className="w-4 h-4 text-[#F59E0B]" />
+                      )}
+                      <span className="text-xs font-semibold text-white">Trust Level</span>
+                    </div>
+                    <span className={`text-[10px] font-bold uppercase ${
+                      (selected.trust_score ?? 0) >= 80 ? "text-[#10B981]" : 
+                      (selected.trust_score ?? 0) >= 40 ? "text-[#00D1FF]" : "text-[#F59E0B]"
+                    }`}>
+                      {(selected.trust_score ?? 0) >= 80 ? "High Trust" : 
+                       (selected.trust_score ?? 0) >= 40 ? "Verified" : "Caution"}
+                    </span>
+                  </div>
+                  <TrustMeter level={selected.trust_score ?? 0} />
                 </div>
 
                 {/* Shared vibes */}
@@ -211,19 +257,33 @@ export default function RadarClient({ profiles, myVibes }: { profiles: RadarProf
                   Profiles are anonymous to protect privacy. Connect to reveal more.
                 </p>
 
-                <div className="mt-6">
+                <div className="mt-6 space-y-4">
+                  <textarea
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    placeholder="Send an anonymous resonance signal..."
+                    className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white placeholder:text-[#4c444f] focus:outline-none focus:border-[#A855F7] transition-colors"
+                    rows={2}
+                  />
+
                   <button 
+                    disabled={sending || !message.trim()}
                     onClick={async () => {
-                      if (selected) {
-                        const result = await initiateMatch(selected.id)
+                      if (selected && message.trim()) {
+                        setSending(true)
+                        const result = await initiateMatch(selected.id, message)
                         if (result?.error) {
                           alert(result.error)
+                        } else if (result?.matchId) {
+                          alert("Signal Resonated! Redirecting to secure channel...")
+                          window.location.href = `/chat/${result.matchId}`
                         }
+                        setSending(false)
                       }
                     }}
-                    className="w-full h-12 bg-white text-black rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-[#00D1FF] transition-colors"
+                    className="w-full h-12 bg-white text-black rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-[#00D1FF] transition-colors disabled:opacity-50"
                   >
-                    Initiate Secure Connection
+                    {sending ? "Sending..." : "Send Resonance Signal"}
                   </button>
                 </div>
               </GlassCard>

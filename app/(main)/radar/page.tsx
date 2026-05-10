@@ -45,7 +45,7 @@ export default async function RadarPage() {
     // 2. Fetch current user's profile
     const { data, error } = await supabase
       .from("profiles")
-      .select("personality_vibes, seeking_vibes, verification_status")
+      .select("personality_vibes, seeking_vibes, verification_status, geo_bucket, privacy_mode, trust_score, gender, preferred_gender")
       .eq("id", user.id)
       .single()
     
@@ -59,9 +59,10 @@ export default async function RadarPage() {
     // 3. Fetch other users
     const { data: othersData, error: othersError } = await supabase
       .from("profiles")
-      .select("id, personality_vibes, seeking_vibes, verification_status")
+      .select("id, personality_vibes, seeking_vibes, verification_status, geo_bucket, privacy_mode, trust_score, gender")
       .neq("id", user.id)
       .neq("verification_status", "pending")
+      .eq("privacy_mode", false) // Respect invisible mode
     
     if (othersError) {
       console.error("Error fetching other profiles:", othersError);
@@ -105,13 +106,22 @@ export default async function RadarPage() {
     redirect("/onboarding/personality")
   }
 
-  const radarProfiles: RadarProfile[] = (others ?? [])
+    // 4. Intelligent Filtering (Gender & Preference)
+    .filter(p => {
+      // If user has a preference, respect it
+      if (myProfile.preferred_gender && myProfile.preferred_gender !== 'everyone') {
+        return p.gender === myProfile.preferred_gender
+      }
+      return true
+    })
     // Only include users who have completed personality sync
     .filter(p => (p.personality_vibes?.length ?? 0) > 0 || (p.seeking_vibes?.length ?? 0) > 0)
     .map(p => ({
       id: p.id,
       personality_vibes: p.personality_vibes ?? [],
       seeking_vibes: p.seeking_vibes ?? [],
+      geo_bucket: p.geo_bucket,
+      trust_score: p.trust_score,
       compatibility: calcCompatibility(
         myVibes,
         mySeeking,
@@ -135,7 +145,11 @@ export default async function RadarPage() {
       </header>
 
       {/* Radar */}
-      <RadarClient profiles={radarProfiles} myVibes={myVibes} />
+      <RadarClient 
+        profiles={radarProfiles} 
+        myVibes={myVibes} 
+        myBucket={myProfile.geo_bucket}
+      />
     </main>
   )
 }
