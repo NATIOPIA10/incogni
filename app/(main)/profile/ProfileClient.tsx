@@ -66,7 +66,14 @@ export default function ProfileClient({ profile }: ProfileClientProps) {
     }))
   }
 
-  const availableVibes = ["Music Lover", "Late Night Owl", "Library Regular", "Coffee Addict", "Matcha Fan", "Night Voyager", "Early Riser", "Sports Fan", "AI Enthusiast"]
+  const availableVibes = [
+    "Music Lover", "Late Night Owl", "Library Regular", "Coffee Addict", "Matcha Fan", 
+    "Night Voyager", "Early Riser", "Sports Fan", "AI Enthusiast", "Book Worm", 
+    "Gamer", "Nature Lover", "Gym Rat", "Artistic Soul", "Tech Geek", 
+    "Startup Mind", "Peace Seeker", "Party Starter", "Foodie", "Pet Parent", 
+    "Dancer", "Movie Buff", "Traveler", "Sustainable", "Fitness Pro", 
+    "Code Master", "Fashionista", "Minimalist", "Photographer", "Yoga Devotee"
+  ]
 
   return (
     <main className="flex flex-col min-h-screen p-6 overflow-y-auto pb-24">
