@@ -13,7 +13,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Campus Soul Proximity",
+  title: "Incogni",
   description: "Ethereal Connectivity - A safe space for university dating.",
 };
 

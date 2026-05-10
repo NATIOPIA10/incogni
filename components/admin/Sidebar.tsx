@@ -74,7 +74,7 @@ export function AdminSidebar() {
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#A855F7] to-[#00D1FF] flex items-center justify-center shadow-[0_0_15px_rgba(168,85,247,0.4)]">
             <ShieldCheck className="w-5 h-5 text-white" />
           </div>
-          <span className="font-display font-bold tracking-tight text-white">SOUL ADMIN</span>
+          <span className="font-display font-bold tracking-tight text-white uppercase">Incogni Admin</span>
         </div>
 
         <nav className="flex-1 space-y-2">
