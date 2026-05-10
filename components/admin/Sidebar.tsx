@@ -10,9 +10,12 @@ import {
   BarChart3, 
   Settings, 
   LogOut,
-  ShieldCheck
+  ShieldCheck,
+  Menu,
+  X
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useState } from "react"
 
 import { createClient } from "@/utils/supabase/client"
 import { useRouter } from "next/navigation"
@@ -27,6 +30,7 @@ const navItems = [
 ]
 
 export function AdminSidebar() {
+  const [isOpen, setIsOpen] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
@@ -38,52 +42,81 @@ export function AdminSidebar() {
   }
 
   return (
-    <aside className="w-64 h-screen sticky top-0 bg-[#0B0E14]/40 backdrop-blur-2xl border-r border-white/5 flex flex-col p-6">
-      <div className="flex items-center gap-3 mb-10 px-2">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#A855F7] to-[#00D1FF] flex items-center justify-center shadow-[0_0_15px_rgba(168,85,247,0.4)]">
-          <ShieldCheck className="w-5 h-5 text-white" />
-        </div>
-        <span className="font-display font-bold tracking-tight text-white">SOUL ADMIN</span>
-      </div>
+    <>
+      {/* Mobile Toggle Button */}
+      <button 
+        onClick={() => setIsOpen(true)}
+        className="lg:hidden fixed top-6 left-6 z-[60] p-2 bg-[#1A1A1A] border border-white/10 rounded-xl text-white shadow-lg"
+      >
+        <Menu className="w-6 h-6" />
+      </button>
 
-      <nav className="flex-1 space-y-2">
-        {navItems.map((item) => {
-          const isActive = pathname === item.href
-          const Icon = item.icon
-          
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group",
-                isActive 
-                  ? "bg-white/10 text-white shadow-[inset_0_0_10px_rgba(255,255,255,0.05)] border border-white/10" 
-                  : "text-[#978d9a] hover:text-white hover:bg-white/5"
-              )}
-            >
-              <Icon className={cn(
-                "w-5 h-5 transition-transform group-hover:scale-110",
-                isActive ? "text-[#00D1FF]" : "text-[#4c444f]"
-              )} />
-              <span className="text-sm font-medium tracking-wide">{item.label}</span>
-              {isActive && (
-                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#00D1FF] shadow-[0_0_8px_#00D1FF]" />
-              )}
-            </Link>
-          )
-        })}
-      </nav>
+      {/* Backdrop */}
+      {isOpen && (
+        <div 
+          className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[70]"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
 
-      <div className="mt-auto pt-6 border-t border-white/5">
+      <aside className={cn(
+        "fixed inset-y-0 left-0 w-64 bg-[#0B0E14] border-r border-white/5 flex flex-col p-6 z-[80] transition-transform duration-300 ease-in-out lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen",
+        isOpen ? "translate-x-0" : "-translate-x-full"
+      )}>
         <button 
-          onClick={handleLogout}
-          className="flex items-center gap-3 px-4 py-3 w-full text-[#978d9a] hover:text-red-400 transition-colors group"
+          onClick={() => setIsOpen(false)}
+          className="lg:hidden absolute top-7 right-6 text-[#4c444f] hover:text-white transition-colors"
         >
-          <LogOut className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-          <span className="text-sm font-medium">Exit Admin</span>
+          <X className="w-6 h-6" />
         </button>
-      </div>
-    </aside>
+
+        <div className="flex items-center gap-3 mb-10 px-2">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#A855F7] to-[#00D1FF] flex items-center justify-center shadow-[0_0_15px_rgba(168,85,247,0.4)]">
+            <ShieldCheck className="w-5 h-5 text-white" />
+          </div>
+          <span className="font-display font-bold tracking-tight text-white">SOUL ADMIN</span>
+        </div>
+
+        <nav className="flex-1 space-y-2">
+          {navItems.map((item) => {
+            const isActive = pathname === item.href
+            const Icon = item.icon
+            
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setIsOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group",
+                  isActive 
+                    ? "bg-white/10 text-white shadow-[inset_0_0_10px_rgba(255,255,255,0.05)] border border-white/10" 
+                    : "text-[#978d9a] hover:text-white hover:bg-white/5"
+                )}
+              >
+                <Icon className={cn(
+                  "w-5 h-5 transition-transform group-hover:scale-110",
+                  isActive ? "text-[#00D1FF]" : "text-[#4c444f]"
+                )} />
+                <span className="text-sm font-medium tracking-wide">{item.label}</span>
+                {isActive && (
+                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#00D1FF] shadow-[0_0_8px_#00D1FF]" />
+                )}
+              </Link>
+            )
+          })}
+        </nav>
+
+        <div className="mt-auto pt-6 border-t border-white/5">
+          <button 
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-4 py-3 w-full text-[#978d9a] hover:text-red-400 transition-colors group"
+          >
+            <LogOut className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+            <span className="text-sm font-medium">Exit Admin</span>
+          </button>
+        </div>
+      </aside>
+    </>
   )
 }
