@@ -13,12 +13,11 @@ export default async function ChatPage() {
     .from("matches")
     .select(`
       *,
-      user_1:profiles!user_1_id(id, personality_vibes),
-      user_2:profiles!user_2_id(id, personality_vibes),
+      user_1:profiles!user_1_id(id, personality_vibes, display_name),
+      user_2:profiles!user_2_id(id, personality_vibes, display_name),
       messages(content, created_at)
     `)
     .or(`user_1_id.eq.${user.id},user_2_id.eq.${user.id}`)
-    // We show both active and pending matches
     .order("created_at", { ascending: false })
 
   if (error) {

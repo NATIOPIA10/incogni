@@ -17,7 +17,11 @@ export default function ChatClient({ matches, currentUser }: ChatClientProps) {
       <div className="space-y-4">
         {matches.length > 0 ? matches.map((match) => {
           const otherProfile = match.user_1_id === currentUser.id ? match.user_2 : match.user_1
-          const lastMessage = match.messages?.[0]
+          const sortedMessages = [...(match.messages || [])].sort((a, b) => 
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          )
+          const lastMessage = sortedMessages[0]
+          const displayName = otherProfile?.display_name || `${otherProfile?.personality_vibes?.[0] || 'Anonymous'} Voyager`
           
             return (
               <Link key={match.id} href={`/chat/${match.id}`}>
@@ -28,7 +32,7 @@ export default function ChatClient({ matches, currentUser }: ChatClientProps) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <h3 className="font-semibold text-sm truncate">
-                        {otherProfile?.personality_vibes?.[0] || 'Anonymous'} Voyager
+                        {displayName}
                       </h3>
                       {match.status === 'pending' && match.initiator_id !== currentUser.id && (
                         <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-[#A855F7] text-white animate-pulse uppercase tracking-tighter">
@@ -37,7 +41,9 @@ export default function ChatClient({ matches, currentUser }: ChatClientProps) {
                       )}
                     </div>
                     <p className="text-xs text-[#978d9a] truncate mt-0.5">
-                      {lastMessage?.content || "Connection established. Say hi!"}
+                      {lastMessage?.content?.includes('||') 
+                        ? "Sent a photo" 
+                        : (lastMessage?.content?.startsWith('http') ? "Sent a photo" : (lastMessage?.content || "Connection established. Say hi!"))}
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-1">
