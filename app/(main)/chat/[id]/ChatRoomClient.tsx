@@ -32,7 +32,9 @@ export default function ChatRoomClient({
   const [trustLevel, setTrustLevel] = useState(40)
   const supabase = createClient()
   const scrollRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
+  const [isUploading, setIsUploading] = useState(false)
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -118,6 +120,41 @@ export default function ChatRoomClient({
     }
   }
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsUploading(true)
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${matchId}/${Math.random()}.${fileExt}`
+    const filePath = `${fileName}`
+
+    const { data, error } = await supabase.storage
+      .from('chat_images')
+      .upload(filePath, file)
+
+    if (error) {
+      console.error("Upload error:", error)
+      setIsUploading(false)
+      return
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('chat_images')
+      .getPublicUrl(filePath)
+
+    // Send the image URL as a message
+    const newMessage = {
+      match_id: matchId,
+      sender_id: currentUser.id,
+      content: publicUrl, // The content is the URL
+    }
+
+    await supabase.from("messages").insert(newMessage)
+    setIsUploading(false)
+    router.refresh()
+  }
+
   const handleAccept = async () => {
     const res = await acceptMatch(matchId)
     if (res.success) {
@@ -168,7 +205,15 @@ export default function ChatRoomClient({
                   ? "bg-[#A855F7]/20 border-[#A855F7]/30 rounded-tr-none text-white shadow-[#A855F7]/5" 
                   : "bg-white/5 border-white/10 rounded-tl-none text-[#978d9a]"
               }`}>
-                <p className="text-sm leading-relaxed">{msg.content}</p>
+                {msg.content.startsWith('http') ? (
+                  <img 
+                    src={msg.content} 
+                    alt="Shared image" 
+                    className="max-w-full rounded-lg border border-white/10 shadow-sm"
+                  />
+                ) : (
+                  <p className="text-sm leading-relaxed">{msg.content}</p>
+                )}
               </div>
               <span className="text-[10px] text-[#4c444f] mt-1.5 px-1 font-medium tracking-tighter uppercase">
                 {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -211,8 +256,23 @@ export default function ChatRoomClient({
 
       <div className="p-4 bg-[#0B0E14]/80 backdrop-blur-md border-t border-white/5 sticky bottom-0 z-20 pb-28">
         <div className="flex items-center gap-2 max-w-md mx-auto">
-          <button className="p-3 rounded-full bg-white/5 text-[#978d9a] hover:bg-white/10 transition-colors">
-            <ImageIcon className="w-5 h-5" />
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            className="hidden" 
+            accept="image/*" 
+            onChange={handleImageUpload}
+          />
+          <button 
+            disabled={isUploading || isPending}
+            onClick={() => fileInputRef.current?.click()}
+            className="p-3 rounded-full bg-white/5 text-[#978d9a] hover:bg-white/10 transition-colors disabled:opacity-50"
+          >
+            {isUploading ? (
+              <div className="w-5 h-5 border-2 border-[#00D1FF] border-t-transparent animate-spin rounded-full" />
+            ) : (
+              <ImageIcon className="w-5 h-5" />
+            )}
           </button>
           <div className="flex-1 relative">
             <input 
