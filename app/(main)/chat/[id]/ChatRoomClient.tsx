@@ -40,6 +40,59 @@ export default function ChatRoomClient({
     }
   }, [messages])
 
+  // Real-time Status Sync
+  useEffect(() => {
+    const channel = supabase
+      .channel(`match_status_${matchId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'matches',
+          filter: `id=eq.${matchId}`
+        },
+        (payload) => {
+          if (payload.new.status === 'active') {
+            setStatus('active')
+            router.refresh()
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [matchId, supabase, router])
+
+  // Real-time Message Sync
+  useEffect(() => {
+    const channel = supabase
+      .channel(`room_messages_${matchId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `match_id=eq.${matchId}`
+        },
+        (payload) => {
+          // Add message if not already present (avoid duplicates from optimistic UI)
+          setMessages(prev => {
+            if (prev.find(m => m.id === payload.new.id)) return prev
+            return [...prev, payload.new]
+          })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [matchId, supabase])
+
   const handleSend = async () => {
     if (!input.trim()) return
 
