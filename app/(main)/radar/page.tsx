@@ -59,7 +59,7 @@ export default async function RadarPage() {
     // 3. Fetch other users
     const { data: othersData, error: othersError } = await supabase
       .from("profiles")
-      .select("id, personality_vibes, seeking_vibes, verification_status, geo_bucket, privacy_mode, trust_score, gender, display_name")
+      .select("id, personality_vibes, seeking_vibes, verification_status, geo_bucket, privacy_mode, trust_score, gender, display_name, age")
       .neq("id", user.id)
       .neq("verification_status", "pending")
       .eq("privacy_mode", false) // Respect invisible mode
@@ -87,11 +87,7 @@ export default async function RadarPage() {
   }
 
   // 3. Onboarding guards
-  
-  // Step 0: Basic Profile Identity
-  if (!myProfile || !myProfile.display_name) {
-    redirect("/onboarding/profile")
-  }
+  if (!myProfile || !myProfile.display_name) redirect("/onboarding/profile")
 
   const status = myProfile?.verification_status ?? "pending"
   if (status === "pending") redirect("/onboarding/verification")
@@ -128,6 +124,9 @@ export default async function RadarPage() {
     .filter(p => (p.personality_vibes?.length ?? 0) > 0 || (p.seeking_vibes?.length ?? 0) > 0)
     .map(p => ({
       id: p.id,
+      display_name: p.display_name,
+      age: p.age,
+      gender: p.gender,
       personality_vibes: p.personality_vibes ?? [],
       seeking_vibes: p.seeking_vibes ?? [],
       geo_bucket: p.geo_bucket,

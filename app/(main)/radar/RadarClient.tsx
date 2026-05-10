@@ -10,6 +10,8 @@ import { TrustMeter } from "@/components/ui/TrustMeter"
 
 export type RadarProfile = {
   id: string
+  display_name?: string
+  age?: number
   personality_vibes: string[]
   seeking_vibes: string[]
   compatibility: number
@@ -186,27 +188,38 @@ export default function RadarClient({
               transition={{ type: "spring", damping: 22, stiffness: 280 }}
             >
               <GlassCard className="p-6 border-white/10">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <Zap className="w-5 h-5 text-[#A855F7]" />
-                    <span className="font-semibold text-white text-lg">
-                      {selected.compatibility}% Resonance
-                    </span>
-                    <div className="flex items-center gap-1.5 bg-white/5 px-2 py-0.5 rounded-md border border-white/10">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#00D1FF] animate-pulse" />
-                      <span className="text-[10px] text-[#00D1FF] font-medium uppercase tracking-tighter">
-                        {getProximityLabel(myBucket, selected.geo_bucket)}
-                      </span>
-                    </div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex flex-col">
+                    <h2 className="font-display text-2xl font-bold text-white tracking-tight">
+                      {selected.display_name || 'Anonymous Voyager'}
+                    </h2>
+                    <p className="text-xs text-[#978d9a] font-medium flex items-center gap-2 mt-0.5 capitalize">
+                      {selected.age || '20'}y • {selected.gender || 'Explorer'}
+                    </p>
                   </div>
                   <button
                     onClick={close}
-                    className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+                    className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors border border-white/10"
                     aria-label="Close"
                   >
-                    <X className="w-4 h-4 text-white" />
+                    <X className="w-5 h-5 text-white" />
                   </button>
+                </div>
+
+                {/* Compatibility Badge */}
+                <div className="flex items-center gap-2 mb-6">
+                  <div className="flex items-center gap-1.5 bg-[#A855F7]/20 px-3 py-1 rounded-full border border-[#A855F7]/30">
+                    <Zap className="w-4 h-4 text-[#A855F7]" />
+                    <span className="font-bold text-[#e3b5ff] text-xs">
+                      {selected.compatibility}% Resonance
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 bg-white/5 px-3 py-1 rounded-full border border-white/10">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#00D1FF] animate-pulse" />
+                    <span className="text-[10px] text-[#00D1FF] font-bold uppercase tracking-wider">
+                      {getProximityLabel(myBucket, selected.geo_bucket)}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Trust Meter */}
