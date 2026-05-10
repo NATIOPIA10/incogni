@@ -158,17 +158,24 @@ export default function ChatRoomClient({
         </div>
       </header>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 pb-32">
-        {messages.map(msg => (
-          <div key={msg.id} className={`flex flex-col ${msg.sender_id === currentUser.id ? "items-end" : "items-start"}`}>
-            <GlassCard className={`max-w-[80%] p-3 px-4 ${msg.sender_id === currentUser.id ? "bg-[#2E004B]/80 border-[#774c94]/50 rounded-2xl rounded-br-sm" : "bg-[#191c22]/80 border-white/5 rounded-2xl rounded-bl-sm"}`}>
-              <p className="text-sm leading-relaxed">{msg.content}</p>
-            </GlassCard>
-            <span className="text-[9px] text-[#4c444f] mt-1 mx-1">
-              {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </span>
-          </div>
-        ))}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 pb-32">
+        {messages.map(msg => {
+          const isMe = msg.sender_id === currentUser.id;
+          return (
+            <div key={msg.id} className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}>
+              <div className={`max-w-[85%] px-4 py-3 rounded-2xl shadow-lg border backdrop-blur-md transition-all ${
+                isMe 
+                  ? "bg-[#A855F7]/20 border-[#A855F7]/30 rounded-tr-none text-white shadow-[#A855F7]/5" 
+                  : "bg-white/5 border-white/10 rounded-tl-none text-[#978d9a]"
+              }`}>
+                <p className="text-sm leading-relaxed">{msg.content}</p>
+              </div>
+              <span className="text-[10px] text-[#4c444f] mt-1.5 px-1 font-medium tracking-tighter uppercase">
+                {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+          );
+        })}
 
         {isPending && !isInitiator && (
           <div className="flex flex-col items-center gap-4 py-8">
