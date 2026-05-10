@@ -161,7 +161,7 @@ export default function ChatRoomClient({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
-              placeholder={isPending ? "Waiting for connection..." : "Send a safe message..."}
+              placeholder={isPending ? (isInitiator ? "Waiting for resonance..." : "Allow connection to reply") : "Send a safe message..."}
               className="w-full bg-[#191c22] border border-white/10 rounded-full h-12 pl-5 pr-12 text-sm focus:outline-none focus:border-[#00D1FF]/50 transition-all disabled:opacity-50"
               suppressHydrationWarning
             />
