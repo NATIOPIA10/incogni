@@ -12,12 +12,27 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
+import type { Viewport } from 'next'
+
+export const viewport: Viewport = {
+  themeColor: '#0B0E14',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+}
+
 export const metadata: Metadata = {
   title: "Incogni",
   description: "Ethereal Connectivity - A safe space for university dating.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Incogni",
+  },
   icons: {
-    icon: "/icon.png",
-    apple: "/icon.png",
+    icon: "/icon-192x192.png",
+    apple: "/icon-192x192.png",
   }
 };
 
