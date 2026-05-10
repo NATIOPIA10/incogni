@@ -1,26 +1,62 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-brand-surface: #10131a;
+  --color-brand-surface-dim: #10131a;
+  --color-brand-surface-bright: #363940;
+  --color-brand-surface-container-lowest: #0b0e14;
+  --color-brand-surface-container-low: #191c22;
+  --color-brand-surface-container: #1d2026;
+  --color-brand-surface-container-high: #272a31;
+  --color-brand-surface-container-highest: #32353c;
+  --color-brand-on-surface: #e1e2eb;
+  --color-brand-on-surface-variant: #cec3d0;
+  --color-brand-outline: #978d9a;
+  --color-brand-outline-variant: #4c444f;
+  
+  --color-brand-primary: #e3b5ff;
+  --color-brand-on-primary: #451c62;
+  --color-brand-primary-container: #2e004b;
+  --color-brand-on-primary-container: #9e71bc;
+  
+  --color-brand-secondary: #a6e6ff;
+  --color-brand-on-secondary: #003543;
+  --color-brand-secondary-container: #14d1ff;
+  --color-brand-on-secondary-container: #00566b;
+  
+  --color-brand-tertiary: #ddb7ff;
+  --color-brand-on-tertiary: #490080;
+  --color-brand-tertiary-container: #2b004f;
+  --color-brand-on-tertiary-container: #ab59fb;
+
+  --color-brand-error: #ffb4ab;
+  --color-brand-on-error: #690005;
+  --color-brand-error-container: #93000a;
+  --color-brand-on-error-container: #ffdad6;
+
+  --color-brand-background: #10131a;
+  --color-brand-on-background: #e1e2eb;
+
+  --font-sans: var(--font-inter), sans-serif;
+  --font-display: var(--font-space-grotesk), sans-serif;
+
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-full: 9999px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer utilities {
+  .glass-card {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10 shadow-lg;
+  }
+  
+  .glass-panel {
+    @apply bg-[#2E004B]/40 backdrop-blur-[20px] border border-white/10;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  @apply bg-[#0B0E14] text-[#e1e2eb] font-sans antialiased min-h-screen flex flex-col;
 }

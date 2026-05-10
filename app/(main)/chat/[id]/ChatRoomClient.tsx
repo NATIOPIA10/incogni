@@ -1,0 +1,124 @@
+"use client"
+
+import { useState, useEffect, useRef } from "react"
+import { GlassCard } from "@/components/ui/GlassCard"
+import { TrustMeter } from "@/components/ui/TrustMeter"
+import { Send, Lock, Unlock, Image as ImageIcon, ChevronLeft } from "lucide-react"
+import { createClient } from "@/utils/supabase/client"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+
+interface ChatRoomClientProps {
+  initialMessages: any[]
+  currentUser: any
+  otherProfile: any
+  matchId: string
+}
+
+export default function ChatRoomClient({ initialMessages, currentUser, otherProfile, matchId }: ChatRoomClientProps) {
+  const [messages, setMessages] = useState(initialMessages)
+  const [input, setInput] = useState("")
+  const [trustLevel, setTrustLevel] = useState(40)
+  const supabase = createClient()
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const router = useRouter()
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    }
+  }, [messages])
+
+  const handleSend = async () => {
+    if (!input.trim()) return
+
+    const newMessage = {
+      match_id: matchId,
+      sender_id: currentUser.id,
+      content: input,
+    }
+
+    // Optimistic UI
+    const optimisticMsg = { ...newMessage, id: Date.now(), created_at: new Date().toISOString() }
+    setMessages(prev => [...prev, optimisticMsg])
+    setInput("")
+
+    const { error } = await supabase
+      .from("messages")
+      .insert(newMessage)
+
+    if (error) {
+      console.error("Failed to send message:", error)
+      // Rollback or show error
+    } else {
+      router.refresh()
+    }
+  }
+
+  return (
+    <main className="flex flex-col h-screen overflow-hidden">
+      <header className="px-6 py-4 border-b border-white/5 bg-[#0B0E14]/80 backdrop-blur-md sticky top-0 z-20">
+        <div className="flex items-center gap-4 mb-2">
+          <Link href="/chat" className="p-2 -ml-2 text-[#978d9a] hover:text-white transition-colors">
+            <ChevronLeft className="w-5 h-5" />
+          </Link>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#A855F7]/30 blur-[1px] border border-white/20 flex items-center justify-center">
+              <span className="text-sm">✨</span>
+            </div>
+            <div>
+              <h1 className="font-display font-semibold text-sm">
+                {otherProfile?.personality_vibes?.[0] || 'Anonymous'} Voyager
+              </h1>
+              <p className="text-[10px] uppercase tracking-widest text-[#10B981] flex items-center gap-1">
+                <Lock className="w-3 h-3" /> Secure Connection
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 mt-2 ml-10">
+          <span className="text-[10px] uppercase tracking-widest text-[#978d9a]">Trust</span>
+          <TrustMeter level={trustLevel} className="flex-1 h-1.5" />
+        </div>
+      </header>
+
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 pb-32">
+        {messages.map(msg => (
+          <div key={msg.id} className={`flex flex-col ${msg.sender_id === currentUser.id ? "items-end" : "items-start"}`}>
+            <GlassCard className={`max-w-[80%] p-3 px-4 ${msg.sender_id === currentUser.id ? "bg-[#2E004B]/80 border-[#774c94]/50 rounded-2xl rounded-br-sm" : "bg-[#191c22]/80 border-white/5 rounded-2xl rounded-bl-sm"}`}>
+              <p className="text-sm leading-relaxed">{msg.content}</p>
+            </GlassCard>
+            <span className="text-[9px] text-[#4c444f] mt-1 mx-1">
+              {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <div className="p-4 bg-gradient-to-t from-[#0B0E14] to-transparent fixed bottom-0 left-0 right-0 z-20 pb-10">
+        <div className="flex items-center gap-2 max-w-md mx-auto">
+          <button className="p-3 rounded-full bg-white/5 text-[#978d9a] hover:bg-white/10 transition-colors">
+            <ImageIcon className="w-5 h-5" />
+          </button>
+          <div className="flex-1 relative">
+            <input 
+              type="text" 
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSend()}
+              placeholder="Send a safe message..."
+              className="w-full bg-[#191c22] border border-white/10 rounded-full h-12 pl-5 pr-12 text-sm focus:outline-none focus:border-[#00D1FF]/50 transition-all"
+              suppressHydrationWarning
+            />
+            <button 
+              onClick={handleSend}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-[#00D1FF] hover:bg-[#00D1FF]/10 rounded-full transition-colors"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+  )
+}
