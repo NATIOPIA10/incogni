@@ -38,7 +38,7 @@ export default async function RadarPage() {
   if (!user) redirect("/")
 
   let myProfile: any = null;
-  let others: any[] = [];
+  let others: = [];
   let fetchError: any = null;
 
   try {
