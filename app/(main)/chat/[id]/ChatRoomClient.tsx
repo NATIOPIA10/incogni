@@ -202,7 +202,7 @@ export default function ChatRoomClient({
         )}
       </div>
 
-      <div className="p-4 bg-gradient-to-t from-[#0B0E14] to-transparent fixed bottom-0 left-0 right-0 z-20 pb-10">
+      <div className="p-4 bg-[#0B0E14]/80 backdrop-blur-md border-t border-white/5 sticky bottom-0 z-20 pb-28">
         <div className="flex items-center gap-2 max-w-md mx-auto">
           <button className="p-3 rounded-full bg-white/5 text-[#978d9a] hover:bg-white/10 transition-colors">
             <ImageIcon className="w-5 h-5" />
