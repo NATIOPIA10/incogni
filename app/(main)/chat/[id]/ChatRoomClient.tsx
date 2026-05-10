@@ -3,20 +3,31 @@
 import { useState, useEffect, useRef } from "react"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { TrustMeter } from "@/components/ui/TrustMeter"
-import { Send, Lock, Unlock, Image as ImageIcon, ChevronLeft } from "lucide-react"
+import { Send, Lock, Unlock, Image as ImageIcon, ChevronLeft, Check, XCircle } from "lucide-react"
 import { createClient } from "@/utils/supabase/client"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { acceptMatch } from "@/app/actions/match"
 
 interface ChatRoomClientProps {
   initialMessages: any[]
   currentUser: any
   otherProfile: any
   matchId: string
+  status: string
+  initiatorId: string
 }
 
-export default function ChatRoomClient({ initialMessages, currentUser, otherProfile, matchId }: ChatRoomClientProps) {
+export default function ChatRoomClient({ 
+  initialMessages, 
+  currentUser, 
+  otherProfile, 
+  matchId,
+  status: initialStatus,
+  initiatorId
+}: ChatRoomClientProps) {
   const [messages, setMessages] = useState(initialMessages)
+  const [status, setStatus] = useState(initialStatus)
   const [input, setInput] = useState("")
   const [trustLevel, setTrustLevel] = useState(40)
   const supabase = createClient()
@@ -49,11 +60,23 @@ export default function ChatRoomClient({ initialMessages, currentUser, otherProf
 
     if (error) {
       console.error("Failed to send message:", error)
-      // Rollback or show error
     } else {
       router.refresh()
     }
   }
+
+  const handleAccept = async () => {
+    const res = await acceptMatch(matchId)
+    if (res.success) {
+      setStatus('active')
+      router.refresh()
+    } else {
+      alert(res.error)
+    }
+  }
+
+  const isInitiator = currentUser.id === initiatorId
+  const isPending = status === 'pending'
 
   return (
     <main className="flex flex-col h-screen overflow-hidden">
@@ -93,6 +116,37 @@ export default function ChatRoomClient({ initialMessages, currentUser, otherProf
             </span>
           </div>
         ))}
+
+        {isPending && !isInitiator && (
+          <div className="flex flex-col items-center gap-4 py-8">
+            <GlassCard className="p-6 text-center border-[#A855F7]/30 bg-[#A855F7]/5 max-w-sm">
+              <h3 className="font-semibold mb-2">New Resonance Signal!</h3>
+              <p className="text-xs text-[#978d9a] mb-6">
+                Someone nearby has resonated with your vibes. Allow this connection to start chatting securely?
+              </p>
+              <div className="flex gap-3">
+                <button 
+                  onClick={handleAccept}
+                  className="flex-1 h-10 bg-[#10B981] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-[#10B981]/80 transition-colors"
+                >
+                  <Check className="w-4 h-4" /> Allow
+                </button>
+                <button className="flex-1 h-10 bg-white/5 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-white/10 transition-colors">
+                  <XCircle className="w-4 h-4" /> Ignore
+                </button>
+              </div>
+            </GlassCard>
+          </div>
+        )}
+
+        {isPending && isInitiator && (
+          <div className="flex flex-col items-center gap-2 py-8 opacity-60">
+            <div className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center animate-pulse">
+              <Lock className="w-4 h-4 text-[#978d9a]" />
+            </div>
+            <p className="text-[10px] uppercase tracking-widest text-[#978d9a]">Waiting for Resonance...</p>
+          </div>
+        )}
       </div>
 
       <div className="p-4 bg-gradient-to-t from-[#0B0E14] to-transparent fixed bottom-0 left-0 right-0 z-20 pb-10">
@@ -103,19 +157,22 @@ export default function ChatRoomClient({ initialMessages, currentUser, otherProf
           <div className="flex-1 relative">
             <input 
               type="text" 
+              disabled={isPending}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
-              placeholder="Send a safe message..."
-              className="w-full bg-[#191c22] border border-white/10 rounded-full h-12 pl-5 pr-12 text-sm focus:outline-none focus:border-[#00D1FF]/50 transition-all"
+              placeholder={isPending ? "Waiting for connection..." : "Send a safe message..."}
+              className="w-full bg-[#191c22] border border-white/10 rounded-full h-12 pl-5 pr-12 text-sm focus:outline-none focus:border-[#00D1FF]/50 transition-all disabled:opacity-50"
               suppressHydrationWarning
             />
-            <button 
-              onClick={handleSend}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-[#00D1FF] hover:bg-[#00D1FF]/10 rounded-full transition-colors"
-            >
-              <Send className="w-4 h-4" />
-            </button>
+            {!isPending && (
+              <button 
+                onClick={handleSend}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-[#00D1FF] hover:bg-[#00D1FF]/10 rounded-full transition-colors"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
       </div>

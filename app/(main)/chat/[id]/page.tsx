@@ -14,8 +14,8 @@ export default async function ChatRoomPage({ params }: { params: { id: string } 
     .from("matches")
     .select(`
       *,
-      user_1:profiles!matches_user_1_id_fkey(id, personality_vibes),
-      user_2:profiles!matches_user_2_id_fkey(id, personality_vibes)
+      user_1:profiles!user_1_id(id, personality_vibes),
+      user_2:profiles!user_2_id(id, personality_vibes)
     `)
     .eq("id", id)
     .single()
@@ -37,6 +37,8 @@ export default async function ChatRoomPage({ params }: { params: { id: string } 
       currentUser={user} 
       otherProfile={otherProfile} 
       matchId={id}
+      status={match.status}
+      initiatorId={match.initiator_id}
     />
   )
 }
