@@ -5,8 +5,9 @@ import { motion, AnimatePresence } from "framer-motion"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { X, Zap, ShieldCheck, ShieldAlert, Shield } from "lucide-react"
 import Link from "next/link"
-import { initiateMatch } from "@/app/actions/match"
+import { updateLocation } from "@/app/actions/location"
 import { TrustMeter } from "@/components/ui/TrustMeter"
+import { RefreshCw } from "lucide-react"
 
 export type RadarProfile = {
   id: string
@@ -76,6 +77,22 @@ export default function RadarClient({
   const [selected, setSelected] = useState<RadarProfile | null>(null)
   const [message, setMessage] = useState("")
   const [sending, setSending] = useState(false)
+  const [isSyncing, setIsSyncing] = useState(false)
+
+  const syncLocation = () => {
+    if (!navigator.geolocation) return alert("Geolocation not supported")
+    
+    setIsSyncing(true)
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const res = await updateLocation(pos.coords.latitude, pos.coords.longitude)
+      setIsSyncing(false)
+      if (res.error) alert(res.error)
+      else router.refresh()
+    }, (err) => {
+      setIsSyncing(false)
+      alert("Please allow location access to use the Radar.")
+    })
+  }
 
   // Close the detail card when tapping the backdrop
   const close = () => setSelected(null)
@@ -85,6 +102,16 @@ export default function RadarClient({
       {/* ── Radar canvas ─────────────────────────────── */}
       <div className="relative flex items-center justify-center w-72 h-72 mt-6">
         {/* Sweep arm */}
+        <div className="absolute top-[-40px] right-[-40px] z-30">
+          <button 
+            onClick={syncLocation}
+            disabled={isSyncing}
+            className={`p-3 rounded-full bg-[#00D1FF]/10 border border-[#00D1FF]/30 text-[#00D1FF] hover:bg-[#00D1FF]/20 transition-all ${isSyncing ? 'animate-spin' : ''}`}
+          >
+            <RefreshCw className="w-5 h-5" />
+          </button>
+        </div>
+
         <motion.div
           className="absolute inset-0 rounded-full overflow-hidden pointer-events-none"
           style={{ zIndex: 0 }}
