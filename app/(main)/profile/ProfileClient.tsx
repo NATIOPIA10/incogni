@@ -19,7 +19,8 @@ export default function ProfileClient({ profile }: ProfileClientProps) {
     display_name: profile?.display_name || '',
     age: profile?.age || 20,
     gender: profile?.gender || 'not_set',
-    resonance_radius: profile?.resonance_radius || 1.0
+    resonance_radius: profile?.resonance_radius || 1.0,
+    seeking_vibes: profile?.seeking_vibes || []
   })
   const [isSaving, setIsSaving] = useState(false)
   const router = useRouter()
@@ -53,6 +54,15 @@ export default function ProfileClient({ profile }: ProfileClientProps) {
       personality_vibes: prev.personality_vibes.includes(vibe)
         ? prev.personality_vibes.filter((v: string) => v !== vibe)
         : [...prev.personality_vibes, vibe]
+    }))
+  }
+
+  const toggleSeekingVibe = (vibe: string) => {
+    setEditedProfile(prev => ({
+      ...prev,
+      seeking_vibes: prev.seeking_vibes.includes(vibe)
+        ? prev.seeking_vibes.filter((v: string) => v !== vibe)
+        : [...prev.seeking_vibes, vibe]
     }))
   }
 
@@ -220,6 +230,40 @@ export default function ProfileClient({ profile }: ProfileClientProps) {
                 </span>
               )) : (
                 <p className="text-xs text-[#4c444f]">No vibes set yet.</p>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="w-full text-left mb-6">
+          <div className="flex justify-between items-end mb-4">
+            <h2 className="font-display text-xl font-semibold text-[#e1e2eb]">Seeking Resonance</h2>
+          </div>
+          
+          {isEditing ? (
+            <div className="flex flex-wrap gap-2 mb-4">
+              {availableVibes.map((v) => (
+                <button
+                  key={v}
+                  onClick={() => toggleSeekingVibe(v)}
+                  className={`px-4 py-2 rounded-full text-xs transition-all border ${
+                    editedProfile.seeking_vibes.includes(v)
+                      ? "bg-[#00D1FF]/20 border-[#00D1FF] text-white"
+                      : "bg-white/5 border-white/5 text-[#4c444f]"
+                  }`}
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {profile?.seeking_vibes?.length > 0 ? profile.seeking_vibes.map((v: string) => (
+                <span key={v} className="bg-[#003B46]/40 border border-[#00D1FF]/20 px-4 py-1.5 rounded-full text-xs text-[#b0f2ff]">
+                  {v}
+                </span>
+              )) : (
+                <p className="text-xs text-[#4c444f]">No preferences set yet.</p>
               )}
             </div>
           )}
