@@ -18,11 +18,19 @@ export async function initiateMatch(otherUserId: string, initialMessage?: string
     .eq("status", "active")
     .maybeSingle()
 
+  // 2. If match exists, send message to it and redirect
   if (existingMatch) {
-    return { error: "You already have an active connection with this frequency." }
+    if (initialMessage && initialMessage.trim()) {
+      await supabase.from("messages").insert({
+        match_id: existingMatch.id,
+        sender_id: user.id,
+        content: initialMessage.trim()
+      })
+    }
+    return { success: true, matchId: existingMatch.id }
   }
 
-  // 2. Create the match
+  // 3. Otherwise, create a NEW match
   const { data: newMatch, error: matchError } = await supabase
     .from("matches")
     .insert({
@@ -37,7 +45,7 @@ export async function initiateMatch(otherUserId: string, initialMessage?: string
     return { error: matchError.message }
   }
 
-  // 3. Send initial message if provided
+  // 4. Send initial message for new match
   if (initialMessage && initialMessage.trim()) {
     await supabase.from("messages").insert({
       match_id: newMatch.id,
