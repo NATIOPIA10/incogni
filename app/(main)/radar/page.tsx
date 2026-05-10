@@ -110,28 +110,20 @@ export default async function RadarPage() {
   const myRadius = myProfile?.resonance_radius || 1.0
 
   const radarProfiles: RadarProfile[] = (others ?? [])
-    .filter(p => p.id !== ADMIN_ID) // Double-check to hide Admin account
+    .filter(p => {
+      if (p.id === ADMIN_ID) return false;
+      if (!p.display_name) {
+        console.log(`Radar Filter: ${p.id} hidden (No nickname)`);
+        return false;
+      }
+      return true;
+    })
     // 4. Intelligent Filtering (Distance, Gender & Preference)
     .filter(p => {
-      /* Distance filter based on resonance radius (DISABLED FOR DEBUG)
-      if (myProfile?.geo_bucket && p.geo_bucket) {
-        const [myLat, myLng] = myProfile.geo_bucket.split(",").map(Number)
-        const [theirLat, theirLng] = p.geo_bucket.split(",").map(Number)
-        const diff = Math.sqrt(Math.pow(myLat - theirLat, 2) + Math.pow(myLng - theirLng, 2))
-        
-        if (diff > (myRadius * 0.01)) return false
-      }
-      */
-
-      /* Gender preference filter (DISABLED FOR DEBUG)
-      if (myProfile?.preferred_gender && myProfile.preferred_gender !== 'everyone') {
-        return p.gender === myProfile.preferred_gender
-      }
-      */
+      /* Distance filter based on resonance radius (DISABLED FOR DEBUG) */
+      /* Gender preference filter (DISABLED FOR DEBUG) */
       return true
     })
-    // Only include users who have at least a display name (so they've started onboarding)
-    .filter(p => !!p.display_name)
     .map(p => ({
       id: p.id,
       display_name: p.display_name,
