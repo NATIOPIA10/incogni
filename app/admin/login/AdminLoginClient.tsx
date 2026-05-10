@@ -58,7 +58,7 @@ export default function AdminLoginClient() {
             <Shield className="w-8 h-8 text-[#A855F7]" />
           </div>
           <h1 className="text-3xl font-display font-bold text-white tracking-tight">Admin Portal</h1>
-          <p className="text-[#978d9a] text-sm">Secure access to Campus Soul Command Center.</p>
+          <p className="text-[#978d9a] text-sm">Secure access to Incogni Command Center.</p>
         </div>
 
         {error && (

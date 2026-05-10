@@ -149,10 +149,10 @@ export default async function RadarPage() {
     <main className="flex flex-col items-center p-6 min-h-[calc(100vh-80px)] overflow-hidden relative">
       {/* Header */}
       <header className="w-full flex justify-between items-center mb-8 mt-4 z-10">
-        <h1 className="font-display text-2xl font-semibold text-[#e1e2eb]">The Radar</h1>
+        <h1 className="font-display text-2xl font-semibold text-[#e1e2eb]">Incogni Radar</h1>
         <div className="flex items-center gap-1.5 bg-[#2E004B]/50 px-3 py-1.5 rounded-full border border-white/10">
           <MapPin className="w-4 h-4 text-[#00D1FF]" />
-          <span className="text-xs font-medium tracking-wide">Campus</span>
+          <span className="text-xs font-medium tracking-wide">Incogni</span>
         </div>
       </header>
 

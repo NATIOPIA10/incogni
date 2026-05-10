@@ -142,7 +142,7 @@ export default function AnalyticsClient({ data }: AnalyticsClientProps) {
           </div>
         </GlassCard>
         <GlassCard className="p-6 border-white/5">
-          <p className="text-[10px] text-[#4c444f] uppercase font-bold tracking-widest mb-1">Campus Growth</p>
+          <p className="text-[10px] text-[#4c444f] uppercase font-bold tracking-widest mb-1">Incogni Growth</p>
           <div className="flex items-end gap-3">
             <h3 className="text-3xl font-bold text-white">+{data.growthRate}%</h3>
             <span className="text-xs text-[#00D1FF] font-medium pb-1">7 Days</span>

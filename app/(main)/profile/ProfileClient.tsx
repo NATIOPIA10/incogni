@@ -90,7 +90,7 @@ export default function ProfileClient({ profile }: ProfileClientProps) {
 
       <div className="mt-8 flex flex-col items-center text-center px-4">
         <h1 className="font-display text-2xl font-semibold tracking-wide mb-1">
-          {profile?.display_name || 'Campus Voyager'}
+          {profile?.display_name || 'Incogni Voyager'}
         </h1>
         <p className="text-xs text-[#978d9a] mb-3 capitalize">
           {profile?.age || '20'}y • {profile?.gender || 'Explorer'} • {(profile?.resonance_radius || 0.05) * 1000}m Reach
@@ -180,7 +180,7 @@ export default function ProfileClient({ profile }: ProfileClientProps) {
 
         <GlassCard className="w-full p-5 mb-6 border-[#2E004B]/30 bg-white/5">
           <div className="flex justify-between items-center mb-3">
-            <h2 className="text-xs font-semibold tracking-wider text-[#cec3d0] uppercase">System Trust</h2>
+            <h2 className="text-xs font-semibold tracking-wider text-[#cec3d0] uppercase">Incogni Resonance</h2>
             <span className="text-[#10B981] font-medium text-sm">
               {status === 'verified' ? '100%' : status === 'pending_verification' ? '60%' : '20%'}
             </span>

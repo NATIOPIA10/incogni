@@ -54,7 +54,7 @@ export default function ProfileSetupClient({ profile }: { profile: any }) {
         <GlassCard className="w-full p-6 border-white/10">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-1.5">
-              <label className="text-[10px] uppercase tracking-widest text-[#978d9a] font-bold pl-1">Campus Nickname</label>
+              <label className="text-[10px] uppercase tracking-widest text-[#978d9a] font-bold pl-1">Incogni Nickname</label>
               <div className="relative">
                 <input 
                   type="text" 
