@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { X, Zap, ShieldCheck, ShieldAlert, Shield } from "lucide-react"
@@ -78,6 +79,7 @@ export default function RadarClient({
   const [message, setMessage] = useState("")
   const [sending, setSending] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
+  const router = useRouter()
 
   const syncLocation = () => {
     if (!navigator.geolocation) return alert("Geolocation not supported")
