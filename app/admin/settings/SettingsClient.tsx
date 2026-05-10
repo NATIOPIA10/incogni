@@ -28,7 +28,9 @@ export default function SettingsClient({ initialConfig }: SettingsClientProps) {
   const [maintenanceMode, setMaintenanceMode] = useState(getConfig('maintenance_mode', false))
   const [allowSignups, setAllowSignups] = useState(getConfig('allow_signups', true))
   const [aiModeration, setAiModeration] = useState(getConfig('ai_moderation_enabled', true))
-  const [loading, setLoading] = useState(false)
+  const [sessionTimeout, setSessionTimeout] = useState(getConfig('session_timeout', '24h'))
+  const [authEnforcement, setAuthEnforcement] = useState(getConfig('auth_enforcement', 'standard'))
+  const [isSaving, setIsSaving] = useState(false)
 
   const handleToggle = async (key: string, value: boolean, setter: (v: boolean) => void) => {
     setter(value)
@@ -40,6 +42,19 @@ export default function SettingsClient({ initialConfig }: SettingsClientProps) {
     }
   }
 
+  const handleSaveAll = async () => {
+    setIsSaving(true)
+    try {
+      await updateSystemSetting('session_timeout', sessionTimeout)
+      await updateSystemSetting('auth_enforcement', authEnforcement)
+      alert("System configuration updated successfully.")
+    } catch (err) {
+      alert("Failed to save changes.")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   return (
     <div className="p-4 sm:p-8 space-y-8 max-w-5xl mx-auto">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
@@ -47,8 +62,18 @@ export default function SettingsClient({ initialConfig }: SettingsClientProps) {
           <h1 className="text-2xl sm:text-3xl font-display font-bold text-white tracking-tight">System Configuration</h1>
           <p className="text-[#978d9a] mt-1 text-sm sm:text-base">Global platform parameters and security protocols.</p>
         </div>
-        <button className="w-full sm:w-auto px-6 py-3 bg-[#00D1FF] text-black rounded-xl text-sm font-bold shadow-[0_0_20px_rgba(0,209,255,0.3)] hover:brightness-110 transition-all flex items-center justify-center gap-2">
-          <Save className="w-4 h-4" /> Save Changes
+        <button 
+          onClick={handleSaveAll}
+          disabled={isSaving}
+          className="w-full sm:w-auto px-6 py-3 bg-[#00D1FF] text-black rounded-xl text-sm font-bold shadow-[0_0_20px_rgba(0,209,255,0.3)] hover:brightness-110 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+        >
+          {isSaving ? (
+            <div className="w-4 h-4 border-2 border-black border-t-transparent animate-spin rounded-full" />
+          ) : (
+            <>
+              <Save className="w-4 h-4" /> Save Changes
+            </>
+          )}
         </button>
       </div>
 
@@ -110,17 +135,25 @@ export default function SettingsClient({ initialConfig }: SettingsClientProps) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="p-4 rounded-xl bg-white/5 border border-white/5 space-y-3">
                 <p className="text-xs font-bold text-[#cec3d0] uppercase tracking-widest">Session Timeout</p>
-                <select className="w-full bg-[#191c22] border border-white/10 rounded-lg p-2 text-sm outline-none text-white">
-                  <option>24 Hours</option>
-                  <option>7 Days</option>
-                  <option>30 Days</option>
+                <select 
+                  value={sessionTimeout}
+                  onChange={(e) => setSessionTimeout(e.target.value)}
+                  className="w-full bg-[#191c22] border border-white/10 rounded-lg p-2 text-sm outline-none text-white"
+                >
+                  <option value="24h">24 Hours</option>
+                  <option value="7d">7 Days</option>
+                  <option value="30d">30 Days</option>
                 </select>
               </div>
               <div className="p-4 rounded-xl bg-white/5 border border-white/5 space-y-3">
                 <p className="text-xs font-bold text-[#cec3d0] uppercase tracking-widest">Auth Enforcement</p>
-                <select className="w-full bg-[#191c22] border border-white/10 rounded-lg p-2 text-sm outline-none text-white">
-                  <option>Strict (MFA Required)</option>
-                  <option>Standard</option>
+                <select 
+                  value={authEnforcement}
+                  onChange={(e) => setAuthEnforcement(e.target.value)}
+                  className="w-full bg-[#191c22] border border-white/10 rounded-lg p-2 text-sm outline-none text-white"
+                >
+                  <option value="strict">Strict (MFA Required)</option>
+                  <option value="standard">Standard</option>
                 </select>
               </div>
             </div>
