@@ -153,7 +153,7 @@ export default function RadarClient({
         ))}
 
         {/* Center dot = me */}
-        <div className="absolute w-5 h-5 rounded-full bg-[#00D1FF] shadow-[0_0_20px_#00D1FF] z-20" />
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-[#00D1FF] shadow-[0_0_20px_#00D1FF] z-20" />
 
         {/* Profile blips */}
         {profiles.map((profile, i) => {
@@ -171,7 +171,7 @@ export default function RadarClient({
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.3 + i * 0.15, type: "spring" }}
-              className="absolute z-10 flex items-center justify-center"
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex items-center justify-center"
               style={{ x, y }}
               whileHover={{ scale: 1.25 }}
               whileTap={{ scale: 0.9 }}

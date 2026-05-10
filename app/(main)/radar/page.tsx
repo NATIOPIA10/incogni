@@ -61,7 +61,7 @@ export default async function RadarPage() {
       .from("profiles")
       .select("id, personality_vibes, seeking_vibes, verification_status, geo_bucket, privacy_mode, trust_score, gender, display_name, age")
       .neq("id", user.id)
-      .neq("verification_status", "pending")
+      .not("verification_status", "eq", "rejected") // Show pending/verified, only hide rejected
       .or("privacy_mode.eq.false,privacy_mode.is.null") // Handle NULL as false for visibility
     
     if (othersError) {
@@ -121,8 +121,8 @@ export default async function RadarPage() {
       }
       return true
     })
-    // Only include users who have completed personality sync
-    .filter(p => (p.personality_vibes?.length ?? 0) > 0 || (p.seeking_vibes?.length ?? 0) > 0)
+    // Only include users who have at least a display name (so they've started onboarding)
+    .filter(p => !!p.display_name)
     .map(p => ({
       id: p.id,
       display_name: p.display_name,
