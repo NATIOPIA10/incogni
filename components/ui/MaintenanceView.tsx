@@ -3,11 +3,19 @@
 import { useEffect, useState } from "react"
 import { GlassCard } from "./GlassCard"
 import { Hammer, Clock, Sparkles } from "lucide-react"
+import { createClient } from "@/utils/supabase/client"
 
 export function MaintenanceView({ startTime }: { startTime: string }) {
   const [timeLeft, setTimeLeft] = useState<{ hours: number, minutes: number, seconds: number } | null>(null)
+  const supabase = createClient()
 
   useEffect(() => {
+    // Automatically logout the user when entering maintenance mode
+    const logout = async () => {
+      await supabase.auth.signOut()
+    }
+    logout()
+
     const target = new Date(startTime).getTime() + (72 * 60 * 60 * 1000)
     
     const timer = setInterval(() => {
