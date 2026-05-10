@@ -61,6 +61,7 @@ export default async function RadarPage() {
       .from("profiles")
       .select("id, personality_vibes, seeking_vibes, verification_status, geo_bucket, privacy_mode, trust_score, gender, display_name, age")
       .neq("id", user.id)
+      .neq("id", "81f9ea7d-e9eb-47a6-8668-13d584ed1435") // Always hide the main admin account
       .eq("role", "user") // Only show regular users on the radar
       .not("verification_status", "eq", "rejected") 
       .or("privacy_mode.eq.false,privacy_mode.is.null")
