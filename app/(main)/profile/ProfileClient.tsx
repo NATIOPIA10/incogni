@@ -18,7 +18,8 @@ export default function ProfileClient({ profile }: ProfileClientProps) {
     preferred_gender: profile?.preferred_gender || 'everyone',
     display_name: profile?.display_name || '',
     age: profile?.age || 20,
-    gender: profile?.gender || 'not_set'
+    gender: profile?.gender || 'not_set',
+    resonance_radius: profile?.resonance_radius || 1.0
   })
   const [isSaving, setIsSaving] = useState(false)
   const router = useRouter()
@@ -75,7 +76,7 @@ export default function ProfileClient({ profile }: ProfileClientProps) {
           {profile?.display_name || 'Campus Voyager'}
         </h1>
         <p className="text-xs text-[#978d9a] mb-3 capitalize">
-          {profile?.age || '20'}y • {profile?.gender || 'Explorer'}
+          {profile?.age || '20'}y • {profile?.gender || 'Explorer'} • {profile?.resonance_radius || 1}km Radius
         </p>
         <div className={`flex items-center gap-2 text-[10px] uppercase tracking-widest px-3 py-1 rounded-full mb-6 ${getStatusColor(status)}`}>
           <ShieldCheck className="w-3 h-3" />
@@ -117,6 +118,25 @@ export default function ProfileClient({ profile }: ProfileClientProps) {
                   <option value="male">Male</option>
                   <option value="non-binary">Non-Binary</option>
                 </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[10px] uppercase tracking-widest text-[#978d9a] mb-2 text-left ml-1">Resonance Reach</label>
+              <div className="flex gap-2">
+                {[0.5, 1.0, 2.0, 5.0].map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => setEditedProfile({...editedProfile, resonance_radius: r})}
+                    className={`flex-1 py-2 rounded-xl border text-[10px] transition-all ${
+                      editedProfile.resonance_radius === r 
+                        ? "bg-[#00D1FF] border-[#00D1FF] text-black font-bold shadow-lg shadow-[#00D1FF]/20" 
+                        : "bg-white/5 border-white/10 text-[#978d9a]"
+                    }`}
+                  >
+                    {r < 1 ? `${r*1000}m` : `${r}km`}
+                  </button>
+                ))}
               </div>
             </div>
 

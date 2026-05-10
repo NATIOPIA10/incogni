@@ -45,7 +45,7 @@ export default async function RadarPage() {
     // 2. Fetch current user's profile
     const { data, error } = await supabase
       .from("profiles")
-      .select("personality_vibes, seeking_vibes, verification_status, geo_bucket, privacy_mode, trust_score, gender, preferred_gender")
+      .select("personality_vibes, seeking_vibes, verification_status, geo_bucket, privacy_mode, trust_score, gender, preferred_gender, resonance_radius")
       .eq("id", user.id)
       .single()
     
@@ -74,31 +74,21 @@ export default async function RadarPage() {
     fetchError = err;
   }
 
-  // Handle missing profiles table or connection error
   if (fetchError && fetchError.code === 'PGRST116') {
-    // Profile not found for this user, but table exists
-    // This shouldn't happen if trigger is working, but we can handle it
   } else if (fetchError) {
     return (
       <main className="flex flex-col items-center justify-center p-6 min-h-screen text-center">
         <h1 className="text-xl font-semibold text-red-400 mb-4">Connection Error</h1>
         <p className="text-[#cec3d0] mb-8">
-          We couldn't connect to the database. Please ensure you've run the SQL setup script in your Supabase dashboard.
+          We couldn't connect to the database. Please ensure you've run the SQL setup script.
         </p>
-        <p className="text-xs text-[#4c444f]">Error: {fetchError.message || "Failed to fetch"}</p>
       </main>
     )
   }
 
-  // 3. Onboarding guards
   const status = myProfile?.verification_status ?? "pending"
+  if (!myProfile || status === "pending") redirect("/onboarding/verification")
 
-  // Step 1: Must have submitted ID (status != "pending")
-  if (!myProfile || status === "pending") {
-    redirect("/onboarding/verification")
-  }
-
-  // Step 2: Must have completed personality sync (non-empty vibes)
   const myVibes: string[] = myProfile.personality_vibes ?? []
   const mySeeking: string[] = myProfile.seeking_vibes ?? []
 
@@ -106,11 +96,23 @@ export default async function RadarPage() {
     redirect("/onboarding/personality")
   }
 
+  const myRadius = myProfile?.resonance_radius || 1.0
+
   const radarProfiles: RadarProfile[] = (others ?? [])
-    // 4. Intelligent Filtering (Gender & Preference)
+    // 4. Intelligent Filtering (Distance, Gender & Preference)
     .filter(p => {
-      // If user has a preference, respect it
-      if (myProfile.preferred_gender && myProfile.preferred_gender !== 'everyone') {
+      // Distance filter based on resonance radius
+      if (myProfile?.geo_bucket && p.geo_bucket) {
+        const [myLat, myLng] = myProfile.geo_bucket.split(",").map(Number)
+        const [theirLat, theirLng] = p.geo_bucket.split(",").map(Number)
+        const diff = Math.sqrt(Math.pow(myLat - theirLat, 2) + Math.pow(myLng - theirLng, 2))
+        
+        // 0.01 degrees is roughly 1.1km
+        if (diff > (myRadius * 0.01)) return false
+      }
+
+      // Gender preference filter
+      if (myProfile?.preferred_gender && myProfile.preferred_gender !== 'everyone') {
         return p.gender === myProfile.preferred_gender
       }
       return true
