@@ -71,7 +71,9 @@ export default function ProfileClient({ profile }: ProfileClientProps) {
       </div>
 
       <div className="mt-8 flex flex-col items-center text-center px-4">
-        <h1 className="font-display text-2xl font-semibold tracking-wide mb-1">My Frequency</h1>
+        <h1 className="font-display text-2xl font-semibold tracking-wide mb-1">
+          {profile?.display_name || 'Campus Voyager'}
+        </h1>
         <p className="text-xs text-[#978d9a] mb-3 capitalize">
           {profile?.age || '20'}y • {profile?.gender || 'Explorer'}
         </p>
@@ -82,6 +84,17 @@ export default function ProfileClient({ profile }: ProfileClientProps) {
 
         {isEditing && (
           <div className="w-full mb-8 space-y-6">
+            <div>
+              <label className="block text-[10px] uppercase tracking-widest text-[#978d9a] mb-2 text-left ml-1">My Nickname</label>
+              <input 
+                type="text"
+                placeholder="e.g. SpaceVoyager"
+                value={editedProfile.display_name}
+                onChange={(e) => setEditedProfile({...editedProfile, display_name: e.target.value})}
+                className="w-full bg-white/5 border border-white/10 rounded-xl h-12 px-4 text-sm focus:border-[#A855F7] transition-all"
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-[10px] uppercase tracking-widest text-[#978d9a] mb-2 text-left ml-1">My Age</label>
