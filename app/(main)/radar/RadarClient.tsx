@@ -193,7 +193,13 @@ export default function RadarClient({
                       </span>
                     </div>
                   </div>
-                    </button>
+                  <button
+                    onClick={close}
+                    className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+                    aria-label="Close"
+                  >
+                    <X className="w-4 h-4 text-white" />
+                  </button>
                 </div>
 
                 {/* Trust Meter */}
