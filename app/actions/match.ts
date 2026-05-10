@@ -45,13 +45,14 @@ export async function initiateMatch(otherUserId: string, initialMessage?: string
     return { error: matchError.message }
   }
 
-  // 4. Send initial message for new match
+  // 3. Send initial message if provided
   if (initialMessage && initialMessage.trim()) {
-    await supabase.from("messages").insert({
+    const { error: msgError } = await supabase.from("messages").insert({
       match_id: newMatch.id,
       sender_id: user.id,
       content: initialMessage.trim()
     })
+    if (msgError) console.error("Initial message error:", msgError)
   }
 
   revalidatePath("/chat")
