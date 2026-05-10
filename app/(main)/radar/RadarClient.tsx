@@ -27,6 +27,13 @@ function getPosition(id: string, index: number) {
   return { angle, distance }
 }
 
+// Pick a colour for the glow based on compatibility
+function getVibeColor(compat: number) {
+  if (compat >= 70) return "#A855F7" // purple – high match
+  if (compat >= 40) return "#00D1FF" // cyan  – medium
+  return "#10B981"                   // green – low
+}
+
 // Proximity logic based on buckets
 function getProximityLabel(myBucket?: string, theirBucket?: string) {
   if (!myBucket || !theirBucket) return "Nearby"
