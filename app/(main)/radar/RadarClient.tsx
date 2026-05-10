@@ -105,7 +105,7 @@ export default function RadarClient({
       {/* ── Radar canvas ─────────────────────────────── */}
       <div className="relative flex items-center justify-center w-72 h-72 mt-6">
         {/* Sweep arm */}
-        <div className="absolute top-[-40px] right-[-40px] z-30">
+        <div className="absolute top-2 right-2 z-30">
           <button 
             onClick={syncLocation}
             disabled={isSyncing}

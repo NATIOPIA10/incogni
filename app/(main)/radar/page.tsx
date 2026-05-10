@@ -62,12 +62,13 @@ export default async function RadarPage() {
       .select("id, personality_vibes, seeking_vibes, verification_status, geo_bucket, privacy_mode, trust_score, gender, display_name, age")
       .neq("id", user.id)
       .neq("verification_status", "pending")
-      .eq("privacy_mode", false) // Respect invisible mode
+      .or("privacy_mode.eq.false,privacy_mode.is.null") // Handle NULL as false for visibility
     
     if (othersError) {
       console.error("Error fetching other profiles:", othersError);
     } else {
       others = othersData || [];
+      console.log(`Radar: Fetched ${others.length} potential users (excluding self and pending)`);
     }
   } catch (err: any) {
     console.error("Unexpected fetch error:", err);
@@ -141,6 +142,8 @@ export default async function RadarPage() {
 
   // Sort by compatibility descending
   radarProfiles.sort((a, b) => b.compatibility - a.compatibility)
+
+  console.log(`Radar: ${radarProfiles.length} users remaining after distance/gender/vibe filters`);
 
   return (
     <main className="flex flex-col items-center p-6 min-h-[calc(100vh-80px)] overflow-hidden relative">

@@ -7,6 +7,13 @@ CREATE TYPE public.user_role AS ENUM ('user', 'moderator', 'admin', 'super_admin
 CREATE TABLE public.profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  display_name TEXT,
+  age INTEGER,
+  gender TEXT,
+  preferred_gender TEXT DEFAULT 'everyone',
+  geo_bucket TEXT,
+  resonance_radius FLOAT DEFAULT 1.0,
+  privacy_mode BOOLEAN DEFAULT false,
   verification_status TEXT DEFAULT 'pending' CHECK (verification_status IN ('pending', 'pending_verification', 'verified', 'rejected')),
   role public.user_role DEFAULT 'user',
   is_suspended BOOLEAN DEFAULT false,
@@ -77,7 +84,8 @@ CREATE TABLE public.matches (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
   user_1_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
   user_2_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
-  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'disconnected')),
+  initiator_id UUID REFERENCES public.profiles(id),
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'disconnected')),
   CONSTRAINT unique_match_pair UNIQUE (user_1_id, user_2_id)
 );
 
