@@ -120,7 +120,13 @@ export default async function RadarPage() {
     // 4. Intelligent Filtering (Distance, Gender & Preference)
     .filter(p => {
       /* Distance filter based on resonance radius (DISABLED FOR DEBUG) */
-      /* Gender preference filter (DISABLED FOR DEBUG) */
+      
+      /* Gender preference filter */
+      const myPref = myProfile.preferred_gender
+      if (myPref && myPref !== "everyone" && p.gender !== myPref) {
+        return false
+      }
+      
       return true
     })
     .map(p => ({
