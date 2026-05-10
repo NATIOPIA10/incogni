@@ -38,17 +38,30 @@ function getVibeColor(compat: number) {
 
 // Proximity logic based on buckets
 function getProximityLabel(myBucket?: string, theirBucket?: string) {
-  if (!myBucket || !theirBucket) return "Nearby"
-  if (myBucket === theirBucket) return "Very Close"
+  if (!myBucket || !theirBucket) return { label: "Nearby", distance: null, direction: "" }
+  if (myBucket === theirBucket) return { label: "Very Close", distance: 15, direction: "Nearby" }
   
-  // Basic string comparison of buckets (since they are lat,lng rounded)
   const [myLat, myLng] = myBucket.split(",").map(Number)
   const [theirLat, theirLng] = theirBucket.split(",").map(Number)
   
-  const diff = Math.sqrt(Math.pow(myLat - theirLat, 2) + Math.pow(myLng - theirLng, 2))
+  const dLat = theirLat - myLat
+  const dLng = theirLng - myLng
+  const diff = Math.sqrt(Math.pow(dLat, 2) + Math.pow(dLng, 2))
   
-  if (diff < 0.005) return "On Campus"
-  return "Nearby"
+  // 1 degree is roughly 111,000 meters
+  const meters = Math.round(diff * 111000)
+  
+  // Calculate angle for direction
+  const angle = (Math.atan2(dLng, dLat) * 180) / Math.PI
+  const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+  const index = Math.round(((angle + 360) % 360) / 45) % 8
+  const cardinal = directions[index]
+  
+  let label = "Nearby"
+  if (meters < 50) label = "Very Close"
+  else if (meters < 200) label = "On Campus"
+  
+  return { label, meters, cardinal }
 }
 
 export default function RadarClient({ 
@@ -214,12 +227,17 @@ export default function RadarClient({
                       {selected.compatibility}% Resonance
                     </span>
                   </div>
-                  <div className="flex items-center gap-1.5 bg-white/5 px-3 py-1 rounded-full border border-white/10">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#00D1FF] animate-pulse" />
-                    <span className="text-[10px] text-[#00D1FF] font-bold uppercase tracking-wider">
-                      {getProximityLabel(myBucket, selected.geo_bucket)}
-                    </span>
-                  </div>
+                  {(() => {
+                    const prox = getProximityLabel(myBucket, selected.geo_bucket)
+                    return (
+                      <div className="flex items-center gap-1.5 bg-white/5 px-3 py-1 rounded-full border border-white/10">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#00D1FF] animate-pulse" />
+                        <span className="text-[10px] text-[#00D1FF] font-bold uppercase tracking-wider">
+                          {prox.meters ? `${prox.meters}m ${prox.cardinal}` : prox.label}
+                        </span>
+                      </div>
+                    )
+                  })()}
                 </div>
 
                 {/* Trust Meter */}
