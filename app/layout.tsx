@@ -15,6 +15,10 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Incogni",
   description: "Ethereal Connectivity - A safe space for university dating.",
+  icons: {
+    icon: "/icon.png",
+    apple: "/icon.png",
+  }
 };
 
 export default function RootLayout({

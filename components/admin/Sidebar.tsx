@@ -71,10 +71,10 @@ export function AdminSidebar() {
         </button>
 
         <div className="flex items-center gap-3 mb-10 px-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#A855F7] to-[#00D1FF] flex items-center justify-center shadow-[0_0_15px_rgba(168,85,247,0.4)]">
-            <ShieldCheck className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 rounded-xl overflow-hidden shadow-[0_0_15px_rgba(168,85,247,0.4)] border border-white/10">
+            <img src="/icon.png" alt="Incogni Logo" className="w-full h-full object-cover" />
           </div>
-          <span className="font-display font-bold tracking-tight text-white uppercase">Incogni Admin</span>
+          <span className="font-display font-bold tracking-tight text-white uppercase text-lg">Incogni</span>
         </div>
 
         <nav className="flex-1 space-y-2">
