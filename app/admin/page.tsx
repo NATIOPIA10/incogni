@@ -20,9 +20,15 @@ export default async function AdminPage() {
 
   // Fetch real stats from database
   const { count: userCount } = await supabase.from("profiles").select("*", { count: "exact", head: true })
-  const { count: matchCount } = await supabase.from("matches").select("*", { count: "exact", head: true, filter: "status.eq.active" })
+  const { count: matchCount } = await supabase
+    .from("matches")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "active")
   const { count: messageCount } = await supabase.from("messages").select("*", { count: "exact", head: true })
-  const { count: reportCount } = await supabase.from("reports").select("*", { count: "exact", head: true, filter: "status.eq.pending" })
+  const { count: reportCount } = await supabase
+    .from("reports")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "pending")
 
   // Fetch recent activity logs
   const { data: recentLogs } = await supabase

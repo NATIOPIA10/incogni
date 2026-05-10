@@ -57,7 +57,10 @@ export default async function AdminAnalyticsPage() {
   const growthRate = totalUsers ? Math.round(((recentUsers || 0) / totalUsers) * 100) : 0
 
   // 4. Match Stats
-  const { count: activeMatches } = await supabase.from("matches").select("*", { count: "exact", head: true, filter: "status.eq.active" })
+  const { count: activeMatches } = await supabase
+    .from("matches")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "active")
   const matchSuccessRate = totalUsers ? Math.round((activeMatches || 0) / totalUsers * 100) : 0
 
   // 5. Report Density

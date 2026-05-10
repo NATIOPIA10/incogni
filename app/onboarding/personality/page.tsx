@@ -20,6 +20,7 @@ export default function PersonalitySync() {
   const [ownVibes, setOwnVibes] = useState<string[]>([])
   const [seekingVibes, setSeekingVibes] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   // Guard: skip if already complete
   const [checking, setChecking] = useState(true)
 
@@ -71,6 +72,7 @@ export default function PersonalitySync() {
     }
 
     setLoading(true)
+    setError(null)
     try {
       const { data: userData } = await supabase.auth.getUser()
       if (!userData.user) throw new Error("Not authenticated. Please sign in again.")
