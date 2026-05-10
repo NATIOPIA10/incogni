@@ -2,14 +2,26 @@
 
 import { GlassCard } from "@/components/ui/GlassCard"
 import { TrustMeter } from "@/components/ui/TrustMeter"
-import { ShieldCheck, Music, Coffee, Book, User, Settings } from "lucide-react"
+import { ShieldCheck, Music, Coffee, Book, User, Settings, Save, X, Sparkles, Heart } from "lucide-react"
+import { useState } from "react"
+import { updateProfile } from "@/app/actions/profile"
+import { useRouter } from "next/navigation"
 
 interface ProfileClientProps {
   profile: any
 }
 
 export default function ProfileClient({ profile }: ProfileClientProps) {
-  const vibes = profile?.personality_vibes || []
+  const [isEditing, setIsEditing] = useState(false)
+  const [editedProfile, setEditedProfile] = useState({
+    personality_vibes: profile?.personality_vibes || [],
+    preferred_gender: profile?.preferred_gender || 'everyone',
+    display_name: profile?.display_name || ''
+  })
+  const [isSaving, setIsSaving] = useState(false)
+  const router = useRouter()
+
+  const vibes = isEditing ? editedProfile.personality_vibes : (profile?.personality_vibes || [])
   const status = profile?.verification_status || 'pending'
   
   const getStatusColor = (s: string) => {
@@ -20,13 +32,28 @@ export default function ProfileClient({ profile }: ProfileClientProps) {
     }
   }
 
-  const getStatusLabel = (s: string) => {
-    switch (s) {
-      case 'verified': return 'Verified Student'
-      case 'pending_verification': return 'Verification Pending'
-      default: return 'Unverified'
+  const handleSave = async () => {
+    setIsSaving(true)
+    const res = await updateProfile(editedProfile)
+    setIsSaving(false)
+    if (res.success) {
+      setIsEditing(false)
+      router.refresh()
+    } else {
+      alert(res.error)
     }
   }
+
+  const toggleVibe = (vibe: string) => {
+    setEditedProfile(prev => ({
+      ...prev,
+      personality_vibes: prev.personality_vibes.includes(vibe)
+        ? prev.personality_vibes.filter((v: string) => v !== vibe)
+        : [...prev.personality_vibes, vibe]
+    }))
+  }
+
+  const availableVibes = ["Music Lover", "Late Night Owl", "Library Regular", "Coffee Addict", "Matcha Fan", "Night Voyager", "Early Riser", "Sports Fan", "AI Enthusiast"]
 
   return (
     <main className="flex flex-col min-h-screen p-6 overflow-y-auto pb-24">
@@ -45,8 +72,31 @@ export default function ProfileClient({ profile }: ProfileClientProps) {
         <h1 className="font-display text-2xl font-semibold tracking-wide mb-2">My Frequency</h1>
         <div className={`flex items-center gap-2 text-[10px] uppercase tracking-widest px-3 py-1 rounded-full mb-6 ${getStatusColor(status)}`}>
           <ShieldCheck className="w-3 h-3" />
-          {getStatusLabel(status)}
+          {status === 'verified' ? 'Verified Student' : status === 'pending_verification' ? 'Verification Pending' : 'Unverified'}
         </div>
+
+        {isEditing && (
+          <div className="w-full mb-8 space-y-4">
+             <div>
+              <label className="block text-[10px] uppercase tracking-widest text-[#978d9a] mb-2 text-left ml-1">Preferred Resonance</label>
+              <div className="flex gap-2">
+                {['female', 'male', 'everyone'].map((g) => (
+                  <button
+                    key={g}
+                    onClick={() => setEditedProfile({...editedProfile, preferred_gender: g})}
+                    className={`flex-1 py-2.5 rounded-xl border text-xs capitalize transition-all ${
+                      editedProfile.preferred_gender === g 
+                        ? "bg-[#A855F7] border-[#A855F7] text-white shadow-lg shadow-[#A855F7]/20" 
+                        : "bg-white/5 border-white/10 text-[#978d9a]"
+                    }`}
+                  >
+                    {g}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         <GlassCard className="w-full p-5 mb-6 border-[#2E004B]/30 bg-white/5">
           <div className="flex justify-between items-center mb-3">
@@ -66,32 +116,67 @@ export default function ProfileClient({ profile }: ProfileClientProps) {
         <div className="w-full text-left mb-6">
           <div className="flex justify-between items-end mb-4">
             <h2 className="font-display text-xl font-semibold text-[#e1e2eb]">My Vibe</h2>
-            <button className="text-[10px] uppercase tracking-widest text-[#00D1FF] font-semibold">Edit</button>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {vibes.length > 0 ? vibes.map((v: string) => (
-              <span key={v} className="bg-[#2E004B]/40 border border-white/5 px-4 py-1.5 rounded-full text-xs text-[#cec3d0]">
-                {v}
-              </span>
-            )) : (
-              <p className="text-xs text-[#4c444f]">No vibes set yet.</p>
+            {!isEditing ? (
+              <button 
+                onClick={() => setIsEditing(true)}
+                className="text-[10px] uppercase tracking-widest text-[#00D1FF] font-semibold flex items-center gap-1"
+              >
+                <Sparkles className="w-3 h-3" /> Edit
+              </button>
+            ) : (
+              <button 
+                onClick={() => setIsEditing(false)}
+                className="text-[10px] uppercase tracking-widest text-[#ef4444] font-semibold flex items-center gap-1"
+              >
+                <X className="w-3 h-3" /> Cancel
+              </button>
             )}
           </div>
+          
+          {isEditing ? (
+            <div className="flex flex-wrap gap-2 mb-4">
+              {availableVibes.map((v) => (
+                <button
+                  key={v}
+                  onClick={() => toggleVibe(v)}
+                  className={`px-4 py-2 rounded-full text-xs transition-all border ${
+                    editedProfile.personality_vibes.includes(v)
+                      ? "bg-[#A855F7]/20 border-[#A855F7] text-white"
+                      : "bg-white/5 border-white/5 text-[#4c444f]"
+                  }`}
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {vibes.length > 0 ? vibes.map((v: string) => (
+                <span key={v} className="bg-[#2E004B]/40 border border-white/5 px-4 py-1.5 rounded-full text-xs text-[#cec3d0]">
+                  {v}
+                </span>
+              )) : (
+                <p className="text-xs text-[#4c444f]">No vibes set yet.</p>
+              )}
+            </div>
+          )}
         </div>
 
-        <GlassCard className="w-full p-5 mb-8 text-left border-white/5 bg-white/5">
-          <div className="flex justify-between items-center mb-2">
-            <h2 className="font-display text-lg font-semibold">Seeking</h2>
-            <Settings className="w-4 h-4 text-[#4c444f]" />
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {(profile?.seeking_vibes || []).map((v: string) => (
-              <span key={v} className="bg-[#00D1FF]/10 border border-[#00D1FF]/20 px-3 py-1 rounded-full text-[11px] text-[#00D1FF]">
-                {v}
-              </span>
-            ))}
-          </div>
-        </GlassCard>
+        {isEditing && (
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="w-full h-14 bg-gradient-to-r from-[#A855F7] to-[#00D1FF] rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-[#A855F7]/20 disabled:opacity-50"
+          >
+            {isSaving ? (
+              <div className="w-5 h-5 border-2 border-white border-t-transparent animate-spin rounded-full" />
+            ) : (
+              <>
+                <Save className="w-5 h-5" /> Save Frequency
+              </>
+            )}
+          </button>
+        )}
       </div>
     </main>
   )
