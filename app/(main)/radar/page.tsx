@@ -3,6 +3,11 @@ import { MapPin } from "lucide-react"
 import { createClient } from "@/utils/supabase/server"
 import RadarClient, { type RadarProfile } from "./RadarClient"
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+const ADMIN_ID = "81f9ea7d-e9eb-47a6-8668-13d584ed1435"
+
 /** Calculate compatibility: % of the other person's vibes that match what the current
  *  user is seeking, blended with how many of their own vibes the other user seeks. */
 function calcCompatibility(
@@ -105,6 +110,7 @@ export default async function RadarPage() {
   const myRadius = myProfile?.resonance_radius || 1.0
 
   const radarProfiles: RadarProfile[] = (others ?? [])
+    .filter(p => p.id !== ADMIN_ID) // Double-check to hide Admin account
     // 4. Intelligent Filtering (Distance, Gender & Preference)
     .filter(p => {
       /* Distance filter based on resonance radius (DISABLED FOR DEBUG)
