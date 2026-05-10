@@ -12,6 +12,7 @@ export default async function MainLayout({
   // Check Maintenance Mode
   const { data: config } = await supabase
     .from('system_config')
+    .select('*')
     .eq('key', 'maintenance_mode')
     .single()
 
