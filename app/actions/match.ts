@@ -75,3 +75,20 @@ export async function acceptMatch(matchId: string) {
   revalidatePath("/chat")
   return { success: true }
 }
+
+export async function deleteMatch(matchId: string) {
+  const supabase = await createClient()
+  
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Unauthorized")
+
+  const { error } = await supabase
+    .from("matches")
+    .delete()
+    .eq("id", matchId)
+
+  if (error) return { error: error.message }
+  
+  revalidatePath("/chat")
+  return { success: true }
+}
