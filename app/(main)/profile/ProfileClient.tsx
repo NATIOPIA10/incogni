@@ -16,7 +16,9 @@ export default function ProfileClient({ profile }: ProfileClientProps) {
   const [editedProfile, setEditedProfile] = useState({
     personality_vibes: profile?.personality_vibes || [],
     preferred_gender: profile?.preferred_gender || 'everyone',
-    display_name: profile?.display_name || ''
+    display_name: profile?.display_name || '',
+    age: profile?.age || 20,
+    gender: profile?.gender || 'not_set'
   })
   const [isSaving, setIsSaving] = useState(false)
   const router = useRouter()
@@ -69,14 +71,42 @@ export default function ProfileClient({ profile }: ProfileClientProps) {
       </div>
 
       <div className="mt-8 flex flex-col items-center text-center px-4">
-        <h1 className="font-display text-2xl font-semibold tracking-wide mb-2">My Frequency</h1>
+        <h1 className="font-display text-2xl font-semibold tracking-wide mb-1">My Frequency</h1>
+        <p className="text-xs text-[#978d9a] mb-3 capitalize">
+          {profile?.age || '20'}y • {profile?.gender || 'Explorer'}
+        </p>
         <div className={`flex items-center gap-2 text-[10px] uppercase tracking-widest px-3 py-1 rounded-full mb-6 ${getStatusColor(status)}`}>
           <ShieldCheck className="w-3 h-3" />
           {status === 'verified' ? 'Verified Student' : status === 'pending_verification' ? 'Verification Pending' : 'Unverified'}
         </div>
 
         {isEditing && (
-          <div className="w-full mb-8 space-y-4">
+          <div className="w-full mb-8 space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[10px] uppercase tracking-widest text-[#978d9a] mb-2 text-left ml-1">My Age</label>
+                <input 
+                  type="number"
+                  value={editedProfile.age}
+                  onChange={(e) => setEditedProfile({...editedProfile, age: parseInt(e.target.value)})}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl h-12 px-4 text-sm focus:border-[#A855F7] transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] uppercase tracking-widest text-[#978d9a] mb-2 text-left ml-1">Identity</label>
+                <select 
+                  value={editedProfile.gender}
+                  onChange={(e) => setEditedProfile({...editedProfile, gender: e.target.value})}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl h-12 px-4 text-sm focus:border-[#A855F7] transition-all appearance-none"
+                >
+                  <option value="not_set">Select...</option>
+                  <option value="female">Female</option>
+                  <option value="male">Male</option>
+                  <option value="non-binary">Non-Binary</option>
+                </select>
+              </div>
+            </div>
+
              <div>
               <label className="block text-[10px] uppercase tracking-widest text-[#978d9a] mb-2 text-left ml-1">Preferred Resonance</label>
               <div className="flex gap-2">
