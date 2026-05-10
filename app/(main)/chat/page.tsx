@@ -18,7 +18,8 @@ export default async function ChatPage() {
       messages(content, created_at)
     `)
     .or(`user_1_id.eq.${user.id},user_2_id.eq.${user.id}`)
-    .eq("status", "active")
+    // We show both active and pending matches
+    .order("created_at", { ascending: false })
 
   if (error) {
     console.error("Match Fetch Error:", error)
