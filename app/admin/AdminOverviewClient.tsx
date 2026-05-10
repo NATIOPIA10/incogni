@@ -32,18 +32,18 @@ export default function AdminOverviewClient({ stats: realStats, recentLogs }: Ad
   ]
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-4 sm:p-8 space-y-8">
       {/* Header */}
-      <div className="flex justify-between items-end">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
-          <h1 className="text-3xl font-display font-bold text-white tracking-tight">Ethereal Insight</h1>
-          <p className="text-[#978d9a] mt-1">Platform overview and real-time activity.</p>
+          <h1 className="text-2xl sm:text-3xl font-display font-bold text-white tracking-tight">Ethereal Insight</h1>
+          <p className="text-[#978d9a] mt-1 text-sm sm:text-base">Platform overview and real-time activity.</p>
         </div>
-        <div className="flex gap-3">
-          <button className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm font-medium hover:bg-white/10 transition-colors">
-            Export Data
+        <div className="flex gap-2 w-full sm:w-auto">
+          <button className="flex-1 sm:flex-none px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-xs sm:text-sm font-medium hover:bg-white/10 transition-colors">
+            Export
           </button>
-          <button className="px-4 py-2 bg-[#00D1FF] text-black rounded-xl text-sm font-bold shadow-[0_0_20px_rgba(0,209,255,0.3)] hover:brightness-110 transition-all">
+          <button className="flex-1 sm:flex-none px-4 py-2 bg-[#00D1FF] text-black rounded-xl text-xs sm:text-sm font-bold shadow-[0_0_20px_rgba(0,209,255,0.3)] hover:brightness-110 transition-all">
             System Pulse
           </button>
         </div>

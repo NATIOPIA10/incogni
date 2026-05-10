@@ -41,20 +41,20 @@ export default function SettingsClient({ initialConfig }: SettingsClientProps) {
   }
 
   return (
-    <div className="p-8 space-y-8 max-w-5xl mx-auto">
-      <div className="flex justify-between items-end">
+    <div className="p-4 sm:p-8 space-y-8 max-w-5xl mx-auto">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
-          <h1 className="text-3xl font-display font-bold text-white tracking-tight">System Configuration</h1>
-          <p className="text-[#978d9a] mt-1">Global platform parameters and security protocols.</p>
+          <h1 className="text-2xl sm:text-3xl font-display font-bold text-white tracking-tight">System Configuration</h1>
+          <p className="text-[#978d9a] mt-1 text-sm sm:text-base">Global platform parameters and security protocols.</p>
         </div>
-        <button className="px-6 py-3 bg-[#00D1FF] text-black rounded-xl text-sm font-bold shadow-[0_0_20px_rgba(0,209,255,0.3)] hover:brightness-110 transition-all flex items-center gap-2">
-          <Save className="w-4 h-4" /> Save Global Changes
+        <button className="w-full sm:w-auto px-6 py-3 bg-[#00D1FF] text-black rounded-xl text-sm font-bold shadow-[0_0_20px_rgba(0,209,255,0.3)] hover:brightness-110 transition-all flex items-center justify-center gap-2">
+          <Save className="w-4 h-4" /> Save Changes
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-6">
-          <GlassCard className="p-8 border-white/5 space-y-8">
+          <GlassCard className="p-6 sm:p-8 border-white/5 space-y-8">
             <h2 className="text-xl font-semibold text-white flex items-center gap-3">
               <Globe className="w-5 h-5 text-[#00D1FF]" />
               Platform Controls
