@@ -128,6 +128,14 @@ CREATE POLICY "Users can view their own matches."
   ON public.matches FOR SELECT 
   USING (auth.uid() = user_1_id OR auth.uid() = user_2_id);
 
+CREATE POLICY "Users can update their own matches." 
+  ON public.matches FOR UPDATE 
+  USING (auth.uid() = user_1_id OR auth.uid() = user_2_id);
+
+CREATE POLICY "Users can delete their own matches." 
+  ON public.matches FOR DELETE 
+  USING (auth.uid() = user_1_id OR auth.uid() = user_2_id);
+
 -- Policies for Messages
 CREATE POLICY "Users can view messages in their matches." 
   ON public.messages FOR SELECT 
