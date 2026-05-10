@@ -106,6 +106,7 @@ export default async function RadarPage() {
     redirect("/onboarding/personality")
   }
 
+  const radarProfiles: RadarProfile[] = (others ?? [])
     // 4. Intelligent Filtering (Gender & Preference)
     .filter(p => {
       // If user has a preference, respect it
