@@ -266,7 +266,9 @@ export default function RadarClient({
                       <div className="flex items-center gap-1.5 bg-white/5 px-3 py-1 rounded-full border border-white/10">
                         <div className="w-1.5 h-1.5 rounded-full bg-[#00D1FF] animate-pulse" />
                         <span className="text-[10px] text-[#00D1FF] font-bold uppercase tracking-wider">
-                          {prox.meters ? `${prox.meters}m ${prox.cardinal}` : prox.label}
+                          {prox.meters 
+                            ? `${prox.meters > 1000 ? (prox.meters / 1000).toFixed(1) + 'km' : Math.round(prox.meters) + 'm'} ${prox.cardinal}` 
+                            : prox.label}
                         </span>
                       </div>
                     )
