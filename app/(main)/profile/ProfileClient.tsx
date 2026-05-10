@@ -86,7 +86,7 @@ export default function ProfileClient({ profile }: ProfileClientProps) {
           {profile?.display_name || 'Campus Voyager'}
         </h1>
         <p className="text-xs text-[#978d9a] mb-3 capitalize">
-          {profile?.age || '20'}y • {profile?.gender || 'Explorer'} • {profile?.resonance_radius || 1}km Radius
+          {profile?.age || '20'}y • {profile?.gender || 'Explorer'} • {(profile?.resonance_radius || 0.05) * 1000}m Reach
         </p>
         <div className={`flex items-center gap-2 text-[10px] uppercase tracking-widest px-3 py-1 rounded-full mb-6 ${getStatusColor(status)}`}>
           <ShieldCheck className="w-3 h-3" />
@@ -134,7 +134,7 @@ export default function ProfileClient({ profile }: ProfileClientProps) {
             <div>
               <label className="block text-[10px] uppercase tracking-widest text-[#978d9a] mb-2 text-left ml-1">Resonance Reach</label>
               <div className="flex gap-2">
-                {[0.5, 1.0, 2.0, 5.0].map((r) => (
+                {[0.01, 0.025, 0.05, 0.1].map((r) => (
                   <button
                     key={r}
                     onClick={() => setEditedProfile({...editedProfile, resonance_radius: r})}
@@ -144,7 +144,7 @@ export default function ProfileClient({ profile }: ProfileClientProps) {
                         : "bg-white/5 border-white/10 text-[#978d9a]"
                     }`}
                   >
-                    {r < 1 ? `${r*1000}m` : `${r}km`}
+                    {r * 1000}m
                   </button>
                 ))}
               </div>
