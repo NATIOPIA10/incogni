@@ -23,13 +23,41 @@ export type RadarProfile = {
   gender?: string
 }
 
-// Deterministically scatter profiles across angles/distances based on their id
-function getPosition(id: string, index: number) {
-  // Use char codes from id for deterministic but varied placement
-  const hash = id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0)
-  const angle = ((hash * 137.5 + index * 60) % 360) // golden-angle spread
-  const distance = 30 + (hash % 40) // 30–70% of radar radius
-  return { angle, distance }
+// Calculate real position based on geographic coordinates
+function getRealPosition(myBucket: string | undefined, theirBucket: string | undefined, index: number, id: string) {
+  if (!myBucket || !theirBucket) {
+    // fallback if no location
+    const hash = id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0)
+    const angle = ((hash * 137.5 + index * 60) % 360) // golden-angle spread
+    const distance = 30 + (hash % 40) // 30–70% of radar radius
+    return { angle, distance }
+  }
+  
+  const [myLat, myLng] = myBucket.split(",").map(Number)
+  const [theirLat, theirLng] = theirBucket.split(",").map(Number)
+  
+  const dLat = theirLat - myLat
+  const dLng = theirLng - myLng
+  
+  // Math.atan2(y, x). Standard UI: y is down, x is right.
+  // Geographic: North is up, East is right.
+  // To map North to top of UI, y should be -dLat.
+  const angle = (Math.atan2(-dLat, dLng) * 180) / Math.PI
+
+  // Calculate distance in meters
+  const diff = Math.sqrt(Math.pow(dLat, 2) + Math.pow(dLng, 2))
+  const meters = diff * 111000
+  
+  // Assume radar represents a 2km radius (2000 meters)
+  const maxRangeMeters = 2000
+  let distancePercentage = (meters / maxRangeMeters) * 100
+  
+  // Clamp so they don't fall outside the radar
+  if (distancePercentage > 95) distancePercentage = 95
+  // Minimum distance so it doesn't overlap the center "me" dot
+  if (distancePercentage < 15) distancePercentage = 15 
+  
+  return { angle, distance: distancePercentage }
 }
 
 // Pick a colour for the glow based on compatibility
@@ -157,7 +185,7 @@ export default function RadarClient({
 
         {/* Profile blips */}
         {profiles.map((profile, i) => {
-          const { angle, distance } = getPosition(profile.id, i)
+          const { angle, distance } = getRealPosition(myBucket, profile.geo_bucket, i, profile.id)
           const radians = (angle * Math.PI) / 180
           // radar is 288px wide → max radius ≈ 130px; distance is 30-70 → scale 0.3-0.7
           const radius = (distance / 100) * 130
