@@ -239,6 +239,9 @@ export default function RadarClient({
                     <p className="text-xs text-[#978d9a] font-medium flex items-center gap-2 mt-0.5 capitalize">
                       {selected.age || '20'}y • {selected.gender || 'Explorer'}
                     </p>
+                    <p className="text-[10px] text-[#00D1FF] font-medium mt-1 uppercase tracking-widest opacity-80">
+                      Sync: {new Date().toLocaleDateString()} • {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
                   </div>
                   <button
                     onClick={close}
