@@ -214,6 +214,6 @@ CREATE POLICY "Admins can view config."
   ON public.system_config FOR SELECT 
   USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin')));
 
-CREATE POLICY "Super admins can modify config." 
-  ON public.system_config FOR UPDATE 
-  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'super_admin'));
+CREATE POLICY "Admins can modify config." 
+  ON public.system_config FOR ALL 
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin')));
