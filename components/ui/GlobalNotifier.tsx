@@ -84,15 +84,15 @@ export function GlobalNotifier({ userId }: { userId: string }) {
 
     const supabase = createClient()
     
-    // Heartbeat to keep mobile socket alive
-    const heartbeat = setInterval(() => {
-      supabase.rpc('get_server_time').then(() => {
-        console.log("[GlobalNotifier] Heartbeat")
-      }).catch(() => {})
-    }, 30000)
+    // Refresh listener whenever the app comes back into focus
+    const handleFocus = () => {
+      console.log("[GlobalNotifier] App focused, ensuring connection...")
+      router.refresh()
+    }
+    window.addEventListener('focus', handleFocus)
 
     const channel = supabase
-      .channel('global_messages_v2')
+      .channel('mobile_stable_sync')
       .on(
         'postgres_changes',
         { 
@@ -109,14 +109,14 @@ export function GlobalNotifier({ userId }: { userId: string }) {
               text: newMsg.content?.includes("||") ? "Sent an image" : (newMsg.content || "New message")
             })
             
-            setTimeout(() => setToast(null), 5000)
+            setTimeout(() => setToast(null), 6000)
 
             if ("Notification" in window && Notification.permission === "granted") {
               try {
                 new Notification("Incogni", {
-                  body: "New message received",
+                  body: "You have a new message!",
                   icon: "/icon.png",
-                  tag: "new-message" // Prevents duplicate stacks
+                  tag: "msg"
                 })
               } catch (e) {}
             }
@@ -130,7 +130,7 @@ export function GlobalNotifier({ userId }: { userId: string }) {
       })
 
     return () => {
-      clearInterval(heartbeat)
+      window.removeEventListener('focus', handleFocus)
       supabase.removeChannel(channel)
     }
 
