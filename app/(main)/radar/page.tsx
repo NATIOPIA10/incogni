@@ -124,6 +124,8 @@ export default async function RadarPage() {
 
   console.log(`Radar: ${radarProfiles.length} users remaining after distance/gender/vibe filters`);
 
+  const myRadius = myProfile?.resonance_radius || 0.1
+
   return (
     <main className="flex flex-col items-center p-6 min-h-[calc(100vh-80px)] overflow-hidden relative">
       {/* Header */}
@@ -138,9 +140,9 @@ export default async function RadarPage() {
       {/* Radar */}
       <RadarClient 
         profiles={radarProfiles} 
-        myVibes={myVibes} 
         myBucket={myProfile.geo_bucket}
         myRadius={myRadius}
+        myProfile={myProfile}
       />
     </main>
   )
