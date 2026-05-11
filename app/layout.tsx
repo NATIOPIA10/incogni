@@ -31,8 +31,14 @@ export const metadata: Metadata = {
     title: "Incogni",
   },
   icons: {
-    icon: "/icon.png?v=1",
-    apple: "/icon.png?v=1",
+    icon: [
+      { url: "/icon.png?v=1" },
+      { url: "/favicon.png?v=1", sizes: "32x32", type: "image/png" },
+    ],
+    shortcut: ["/icon.png?v=1"],
+    apple: [
+      { url: "/icon.png?v=1" },
+    ],
   }
 };
 
