@@ -20,22 +20,31 @@ export function GlobalNotifier({ userId }: { userId: string }) {
       const ctx = audioCtx.current
       if (ctx.state === 'suspended') ctx.resume()
 
-      const osc = ctx.createOscillator()
+      // Create a more audible "chime" sound
+      const osc1 = ctx.createOscillator()
+      const osc2 = ctx.createOscillator()
       const gainNode = ctx.createGain()
       
-      osc.type = 'sine'
-      osc.frequency.setValueAtTime(600, ctx.currentTime)
-      osc.frequency.setValueAtTime(800, ctx.currentTime + 0.1)
+      osc1.type = 'sine'
+      osc1.frequency.setValueAtTime(880, ctx.currentTime) // A5
+      osc1.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.5)
+      
+      osc2.type = 'sine'
+      osc2.frequency.setValueAtTime(1320, ctx.currentTime) // E6
+      osc2.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.5)
       
       gainNode.gain.setValueAtTime(0, ctx.currentTime)
-      gainNode.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.05)
-      gainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.2)
+      gainNode.gain.linearRampToValueAtTime(0.8, ctx.currentTime + 0.02) // Louder
+      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8)
       
-      osc.connect(gainNode)
+      osc1.connect(gainNode)
+      osc2.connect(gainNode)
       gainNode.connect(ctx.destination)
       
-      osc.start()
-      osc.stop(ctx.currentTime + 0.2)
+      osc1.start()
+      osc2.start()
+      osc1.stop(ctx.currentTime + 0.8)
+      osc2.stop(ctx.currentTime + 0.8)
     } catch (e) {
       console.error("Audio ping failed:", e)
     }
