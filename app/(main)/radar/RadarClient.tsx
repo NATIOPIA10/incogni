@@ -155,14 +155,24 @@ export default function RadarClient({
     // Supabase Realtime Subscription
     const supabase = createClient()
     const channel = supabase
-      .channel('schema-db-changes')
+      .channel('radar-sync')
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'profiles' },
+        { event: '*', schema: 'public', table: 'profiles' },
         (payload) => {
-          setLiveProfiles(prev => prev.map(p => 
-            p.id === payload.new.id ? { ...p, geo_bucket: payload.new.geo_bucket } : p
-          ))
+          if (payload.eventType === 'UPDATE') {
+            setLiveProfiles(prev => prev.map(p => 
+              p.id === payload.new.id ? { ...p, ...payload.new } : p
+            ))
+          } else if (payload.eventType === 'INSERT') {
+            const newUser = payload.new as RadarProfile
+            setLiveProfiles(prev => {
+              if (prev.find(p => p.id === newUser.id)) return prev
+              return [...prev, newUser]
+            })
+          } else if (payload.eventType === 'DELETE') {
+            setLiveProfiles(prev => prev.filter(p => p.id === payload.old.id))
+          }
         }
       )
       .subscribe()
@@ -405,13 +415,15 @@ export default function RadarClient({
                   {(() => {
                     const liveSelected = liveProfiles.find(p => p.id === selected.id) || selected
                     const prox = getProximityLabel(myLiveBucket, liveSelected.geo_bucket)
+                    if (!prox.meters && prox.meters !== 0) return null
+                    
                     return (
                       <div className="flex items-center gap-1.5 bg-white/5 px-3 py-1 rounded-full border border-white/10">
                         <div className="w-1.5 h-1.5 rounded-full bg-[#00D1FF] animate-pulse" />
                         <span className="text-[10px] text-[#00D1FF] font-bold uppercase tracking-wider">
-                          {prox.meters 
-                            ? `${prox.meters > 1000 ? (prox.meters / 1000).toFixed(1) + 'km' : Math.round(prox.meters) + 'm'} ${prox.cardinal}` 
-                            : prox.label}
+                          {prox.meters >= 1000 
+                            ? `${(prox.meters / 1000).toFixed(1)}KM` 
+                            : `${Math.round(prox.meters)}M`} {prox.cardinal}
                         </span>
                       </div>
                     )
