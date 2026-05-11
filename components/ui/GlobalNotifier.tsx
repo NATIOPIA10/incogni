@@ -82,56 +82,45 @@ export function GlobalNotifier({ userId }: { userId: string }) {
       Notification.requestPermission()
     }
 
-    const supabase = createClient()
-    
-    // Refresh listener whenever the app comes back into focus
-    const handleFocus = () => {
-      console.log("[GlobalNotifier] App focused, ensuring connection...")
-      router.refresh()
-    }
-    window.addEventListener('focus', handleFocus)
+    const lastMsgId = useRef<string | null>(null)
 
-    const channel = supabase
-      .channel('mobile_stable_sync')
-      .on(
-        'postgres_changes',
-        { 
-          event: 'INSERT', 
-          schema: 'public', 
-          table: 'messages',
-        },
-        (payload) => {
-          const newMsg = payload.new
-          if (newMsg && newMsg.sender_id !== userId) {
-            setToast({ 
-              id: newMsg.id || String(Date.now()), 
-              matchId: newMsg.match_id, 
-              text: newMsg.content?.includes("||") ? "Sent an image" : (newMsg.content || "New message")
-            })
-            
-            setTimeout(() => setToast(null), 6000)
+    const pollMessages = async () => {
+      try {
+        const { data: latestMsg } = await supabase
+          .from('messages')
+          .select('id, match_id, sender_id, content')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
 
-            if ("Notification" in window && Notification.permission === "granted") {
-              try {
-                new Notification("Incogni", {
-                  body: "You have a new message!",
-                  icon: "/icon.png",
-                  tag: "msg"
-                })
-              } catch (e) {}
-            }
-            
-            playMessageSound()
+        if (latestMsg && latestMsg.sender_id !== userId && latestMsg.id !== lastMsgId.current) {
+          lastMsgId.current = latestMsg.id
+          
+          setToast({ 
+            id: latestMsg.id, 
+            matchId: latestMsg.match_id, 
+            text: latestMsg.content?.includes("||") ? "Sent an image" : (latestMsg.content || "New message")
+          })
+          
+          setTimeout(() => setToast(null), 6000)
+
+          if ("Notification" in window && Notification.permission === "granted") {
+            try {
+              new Notification("Incogni", { body: "New message!", icon: "/icon.png" })
+            } catch (e) {}
           }
+          
+          playMessageSound()
         }
-      )
-      .subscribe((status) => {
-        console.log("[GlobalNotifier] Status:", status)
-      })
+      } catch (e) {}
+    }
+
+    // Poll every 3 seconds for guaranteed mobile delivery
+    const interval = setInterval(pollMessages, 3000)
+    pollMessages() // Initial check
 
     return () => {
-      window.removeEventListener('focus', handleFocus)
-      supabase.removeChannel(channel)
+      clearInterval(interval)
     }
 
     return () => {
