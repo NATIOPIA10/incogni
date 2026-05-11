@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { GlassCard } from "@/components/ui/GlassCard"
-import { X, Zap, ShieldCheck, ShieldAlert, Shield, Radio } from "lucide-react"
+import { X, Zap, ShieldCheck, ShieldAlert, Shield, Radio, RefreshCw } from "lucide-react"
 import Link from "next/link"
 import { updateLocation } from "@/app/actions/location"
 import { initiateMatch } from "@/app/actions/match"
@@ -139,6 +139,7 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
   const [isTracking, setIsTracking] = useState(false)
   const [liveProfiles, setLiveProfiles] = useState(profiles)
   const [myLiveBucket, setMyLiveBucket] = useState(myBucket)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   
   const router = useRouter()
   const watchId = useRef<number | null>(null)
@@ -279,6 +280,18 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
       <div className="relative flex items-center justify-center w-72 h-72 mt-6">
         {/* Sweep arm */}
         <div className="absolute top-2 right-2 z-30 flex items-center gap-2">
+          <button
+            onClick={() => {
+              setIsRefreshing(true)
+              router.refresh()
+              setTimeout(() => setIsRefreshing(false), 1000)
+            }}
+            className="p-3 rounded-full border transition-all bg-white/5 border-white/10 text-[#cec3d0] hover:bg-white/10"
+            aria-label="Refresh Radar"
+          >
+            <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </button>
+          
           {isTracking && (
             <span className="text-[10px] uppercase font-bold text-[#10B981] animate-pulse bg-[#10B981]/20 px-2 py-1 rounded-full border border-[#10B981]/40">
               Live
