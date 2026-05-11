@@ -238,9 +238,13 @@ export default function RadarClient({
   // Unified list of users within range
   const maxRange = Math.max(myRadius * 1000, 50)
   const nearbyProfiles = liveProfiles.filter(p => {
-    const { meters } = getProximityLabel(myLiveBucket, p.geo_bucket)
+    // Fallback to initial myBucket if live GPS hasn't fired yet
+    const effectiveMyBucket = myLiveBucket || myBucket
+    const { meters } = getProximityLabel(effectiveMyBucket, p.geo_bucket)
     return meters !== null && meters <= maxRange
   })
+
+  const hasLocation = !!(myLiveBucket || myBucket)
 
   return (
     <div className="flex flex-col items-center w-full h-full relative">
@@ -349,13 +353,15 @@ export default function RadarClient({
       {/* Status text */}
       <div className="mt-6 text-center" key={`status-${nearbyProfiles.length}-${myLiveBucket}`}>
         <p className="text-[#cec3d0] text-sm">
-          {nearbyProfiles.length === 0
-            ? "No one nearby yet — check back soon"
-            : `Scanning for resonant frequencies...`}
+          {!hasLocation 
+            ? "Establishing GPS lock..." 
+            : nearbyProfiles.length === 0
+              ? `No one within ${maxRange}m — try a wider radius in Profile`
+              : `Scanning ${maxRange}m resonant field...`}
         </p>
-        {nearbyProfiles.length > 0 && (
+        {hasLocation && nearbyProfiles.length > 0 && (
           <p className="text-[#00D1FF] font-medium text-sm animate-pulse mt-1">
-            {nearbyProfiles.length} {nearbyProfiles.length === 1 ? "connection" : "connections"} within {maxRange}m
+            {nearbyProfiles.length} {nearbyProfiles.length === 1 ? "connection" : "connections"} nearby
           </p>
         )}
       </div>
