@@ -31,8 +31,8 @@ export const metadata: Metadata = {
     title: "Incogni",
   },
   icons: {
-    icon: "/icon.png",
-    apple: "/icon.png",
+    icon: "/icon.png?v=1",
+    apple: "/icon.png?v=1",
   }
 };
 
