@@ -77,19 +77,19 @@ export function GlobalNotifier({ userId }: { userId: string }) {
     console.log("[GlobalNotifier] Listening to global messages for user", userId)
     
     const channel = supabase
-      .channel('messages-universal')
+      .channel('schema-db-changes')
       .on(
         'postgres_changes',
         { 
-          event: 'INSERT', 
+          event: '*', 
           schema: 'public', 
           table: 'messages',
         },
         (payload) => {
-          console.log("[GlobalNotifier] MSG:", payload)
-          const newMsg = payload.new
+          console.log("[GlobalNotifier] PAYLOAD:", payload)
+          if (payload.eventType !== 'INSERT') return
           
-          // Only notify if not from us
+          const newMsg = payload.new
           if (newMsg && newMsg.sender_id !== userId) {
             // Check if we are currently in THIS specific chat room
             const isCurrentlyInThisChat = pathnameRef.current?.includes(newMsg.match_id)
@@ -118,7 +118,10 @@ export function GlobalNotifier({ userId }: { userId: string }) {
         }
       )
       .subscribe((status) => {
-        console.log("[GlobalNotifier] Status:", status)
+        console.log("[GlobalNotifier] Subscription:", status)
+        if (status === 'SUBSCRIBED') {
+          console.log("[GlobalNotifier] SUCCESS: Realtime is active")
+        }
       })
 
     return () => {
