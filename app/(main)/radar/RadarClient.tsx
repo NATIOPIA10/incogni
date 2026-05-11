@@ -1,15 +1,15 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { GlassCard } from "@/components/ui/GlassCard"
-import { X, Zap, ShieldCheck, ShieldAlert, Shield } from "lucide-react"
+import { X, Zap, ShieldCheck, ShieldAlert, Shield, Radio } from "lucide-react"
 import Link from "next/link"
 import { updateLocation } from "@/app/actions/location"
 import { initiateMatch } from "@/app/actions/match"
 import { TrustMeter } from "@/components/ui/TrustMeter"
-import { RefreshCw } from "lucide-react"
+import { createClient } from "@/utils/supabase/client"
 
 export type RadarProfile = {
   id: string
@@ -124,22 +124,77 @@ export default function RadarClient({
   const [selected, setSelected] = useState<RadarProfile | null>(null)
   const [message, setMessage] = useState("")
   const [sending, setSending] = useState(false)
-  const [isSyncing, setIsSyncing] = useState(false)
+  const [isTracking, setIsTracking] = useState(false)
+  const [liveProfiles, setLiveProfiles] = useState(profiles)
+  const [myLiveBucket, setMyLiveBucket] = useState(myBucket)
+  
   const router = useRouter()
+  const watchId = useRef<number | null>(null)
+  const lastUpdate = useRef<number>(0)
 
-  const syncLocation = () => {
+  useEffect(() => {
+    // Sync initial profiles to live profiles when props change
+    setLiveProfiles(profiles)
+  }, [profiles])
+
+  useEffect(() => {
+    // Supabase Realtime Subscription
+    const supabase = createClient()
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'profiles' },
+        (payload) => {
+          setLiveProfiles(prev => prev.map(p => 
+            p.id === payload.new.id ? { ...p, geo_bucket: payload.new.geo_bucket } : p
+          ))
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+      if (watchId.current !== null) {
+        navigator.geolocation.clearWatch(watchId.current)
+      }
+    }
+  }, [])
+
+  const toggleTracking = () => {
+    if (isTracking) {
+      if (watchId.current !== null) {
+        navigator.geolocation.clearWatch(watchId.current)
+        watchId.current = null
+      }
+      setIsTracking(false)
+      return
+    }
+
     if (!navigator.geolocation) return alert("Geolocation not supported")
     
-    setIsSyncing(true)
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      const res = await updateLocation(pos.coords.latitude, pos.coords.longitude)
-      setIsSyncing(false)
-      if (res.error) alert(res.error)
-      else router.refresh()
-    }, (err) => {
-      setIsSyncing(false)
-      alert("Please allow location access to use the Radar.")
-    })
+    setIsTracking(true)
+    watchId.current = navigator.geolocation.watchPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude
+        const lng = pos.coords.longitude
+        setMyLiveBucket(`${lat},${lng}`)
+        
+        // Throttle DB updates to once every 10 seconds
+        const now = Date.now()
+        if (now - lastUpdate.current > 10000) {
+          lastUpdate.current = now
+          await updateLocation(lat, lng)
+        }
+      }, 
+      (err) => {
+        console.error(err)
+        setIsTracking(false)
+        if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current)
+        alert("Location access denied or lost. Live tracking stopped.")
+      },
+      { enableHighAccuracy: true, maximumAge: 0 }
+    )
   }
 
   // Close the detail card when tapping the backdrop
@@ -150,13 +205,22 @@ export default function RadarClient({
       {/* ── Radar canvas ─────────────────────────────── */}
       <div className="relative flex items-center justify-center w-72 h-72 mt-6">
         {/* Sweep arm */}
-        <div className="absolute top-2 right-2 z-30">
+        <div className="absolute top-2 right-2 z-30 flex items-center gap-2">
+          {isTracking && (
+            <span className="text-[10px] uppercase font-bold text-[#10B981] animate-pulse bg-[#10B981]/20 px-2 py-1 rounded-full border border-[#10B981]/40">
+              Live
+            </span>
+          )}
           <button 
-            onClick={syncLocation}
-            disabled={isSyncing}
-            className={`p-3 rounded-full bg-[#00D1FF]/10 border border-[#00D1FF]/30 text-[#00D1FF] hover:bg-[#00D1FF]/20 transition-all ${isSyncing ? 'animate-spin' : ''}`}
+            onClick={toggleTracking}
+            className={`p-3 rounded-full border transition-all ${
+              isTracking 
+                ? 'bg-[#10B981]/20 border-[#10B981]/50 text-[#10B981] shadow-[0_0_15px_rgba(16,185,129,0.5)]' 
+                : 'bg-[#00D1FF]/10 border-[#00D1FF]/30 text-[#00D1FF] hover:bg-[#00D1FF]/20'
+            }`}
+            aria-label={isTracking ? "Stop Live Tracking" : "Start Live Tracking"}
           >
-            <RefreshCw className="w-5 h-5" />
+            {isTracking ? <Radio className="w-5 h-5 animate-pulse" /> : <Radio className="w-5 h-5" />}
           </button>
         </div>
 
@@ -201,8 +265,8 @@ export default function RadarClient({
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-[#00D1FF] shadow-[0_0_20px_#00D1FF] z-20" />
 
         {/* Profile blips */}
-        {profiles.map((profile, i) => {
-          const { angle, distance } = getRealPosition(myBucket, profile.geo_bucket, i, profile.id)
+        {liveProfiles.map((profile, i) => {
+          const { angle, distance } = getRealPosition(myLiveBucket, profile.geo_bucket, i, profile.id)
           const radians = (angle * Math.PI) / 180
           // radar is 288px wide → max radius ≈ 130px; distance is 30-70 → scale 0.3-0.7
           const radius = (distance / 100) * 130
@@ -243,13 +307,13 @@ export default function RadarClient({
       {/* Status text */}
       <div className="mt-6 text-center">
         <p className="text-[#cec3d0] text-sm">
-          {profiles.length === 0
+          {liveProfiles.length === 0
             ? "No one nearby yet — check back soon"
             : `Scanning for resonant frequencies...`}
         </p>
-        {profiles.length > 0 && (
+        {liveProfiles.length > 0 && (
           <p className="text-[#00D1FF] font-medium text-sm animate-pulse mt-1">
-            {profiles.length} {profiles.length === 1 ? "connection" : "connections"} nearby
+            {liveProfiles.length} {liveProfiles.length === 1 ? "connection" : "connections"} nearby
           </p>
         )}
       </div>
@@ -306,7 +370,8 @@ export default function RadarClient({
                     </span>
                   </div>
                   {(() => {
-                    const prox = getProximityLabel(myBucket, selected.geo_bucket)
+                    const liveSelected = liveProfiles.find(p => p.id === selected.id) || selected
+                    const prox = getProximityLabel(myLiveBucket, liveSelected.geo_bucket)
                     return (
                       <div className="flex items-center gap-1.5 bg-white/5 px-3 py-1 rounded-full border border-white/10">
                         <div className="w-1.5 h-1.5 rounded-full bg-[#00D1FF] animate-pulse" />
