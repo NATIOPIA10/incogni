@@ -297,11 +297,12 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
         triggered = true
         
         if ("Notification" in window && Notification.permission === "granted") {
-          new Notification("Incogni Resonance Alert!", {
+          const options: any = {
             body: `A ${p.compatibility}% resonance match is nearby!`,
             icon: "/icon.png",
             vibrate: [200, 100, 200]
-          })
+          }
+          new Notification("Incogni Resonance Alert!", options)
         }
       }
     })

@@ -1,6 +1,7 @@
 import { BottomNav } from "@/components/ui/BottomNav"
 import { createClient } from "@/utils/supabase/server"
 import { MaintenanceView } from "@/components/ui/MaintenanceView"
+import { GlobalNotifier } from "@/components/ui/GlobalNotifier"
 
 export default async function MainLayout({
   children,
@@ -40,6 +41,7 @@ export default async function MainLayout({
 
   return (
     <div className="flex flex-col min-h-screen">
+      {user && <GlobalNotifier userId={user.id} />}
       <div className="flex-1 pb-24">
         {children}
       </div>
