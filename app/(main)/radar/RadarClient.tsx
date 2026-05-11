@@ -103,7 +103,8 @@ function getProximityLabel(myBucket?: string, theirBucket?: string) {
   const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
             Math.cos(phi1) * Math.cos(phi2) *
             Math.sin(dLon / 2) * Math.sin(dLon / 2)
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  const safeA = Math.min(1, Math.max(0, a))
+  const c = 2 * Math.atan2(Math.sqrt(safeA), Math.sqrt(1 - safeA))
 
   const meters = R * c
   
