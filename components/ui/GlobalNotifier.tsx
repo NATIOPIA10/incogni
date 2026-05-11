@@ -83,10 +83,16 @@ export function GlobalNotifier({ userId }: { userId: string }) {
     }
 
     const supabase = createClient()
-    console.log("[GlobalNotifier] Listening to global messages for user", userId)
     
+    // Heartbeat to keep mobile socket alive
+    const heartbeat = setInterval(() => {
+      supabase.rpc('get_server_time').then(() => {
+        console.log("[GlobalNotifier] Heartbeat")
+      }).catch(() => {})
+    }, 30000)
+
     const channel = supabase
-      .channel('messages_realtime')
+      .channel('global_messages_v2')
       .on(
         'postgres_changes',
         { 
@@ -95,43 +101,38 @@ export function GlobalNotifier({ userId }: { userId: string }) {
           table: 'messages',
         },
         (payload) => {
-          console.log("[GlobalNotifier] PAYLOAD:", payload)
-          if (payload.eventType !== 'INSERT') return
-          
           const newMsg = payload.new
           if (newMsg && newMsg.sender_id !== userId) {
-            // Check if we are currently in THIS specific chat room
-            const isCurrentlyInThisChat = pathnameRef.current?.includes(newMsg.match_id)
+            setToast({ 
+              id: newMsg.id || String(Date.now()), 
+              matchId: newMsg.match_id, 
+              text: newMsg.content?.includes("||") ? "Sent an image" : (newMsg.content || "New message")
+            })
             
-            if (true) { // Force notification everywhere for testing
-              setToast({ 
-                id: newMsg.id || String(Date.now()), 
-                matchId: newMsg.match_id, 
-                text: newMsg.content?.includes("||") ? "Sent an image" : (newMsg.content || "New message")
-              })
-              
-              setTimeout(() => setToast(null), 5000)
+            setTimeout(() => setToast(null), 5000)
 
-              if ("Notification" in window && Notification.permission === "granted") {
-                try {
-                  new Notification("Incogni Message", {
-                    body: "New message received",
-                    icon: "/icon.png"
-                  })
-                } catch (e) {}
-              }
-              
-              playMessageSound()
+            if ("Notification" in window && Notification.permission === "granted") {
+              try {
+                new Notification("Incogni", {
+                  body: "New message received",
+                  icon: "/icon.png",
+                  tag: "new-message" // Prevents duplicate stacks
+                })
+              } catch (e) {}
             }
+            
+            playMessageSound()
           }
         }
       )
       .subscribe((status) => {
-        console.log("[GlobalNotifier] Subscription:", status)
-        if (status === 'SUBSCRIBED') {
-          console.log("[GlobalNotifier] SUCCESS: Realtime is active")
-        }
+        console.log("[GlobalNotifier] Status:", status)
       })
+
+    return () => {
+      clearInterval(heartbeat)
+      supabase.removeChannel(channel)
+    }
 
     return () => {
       console.log("[GlobalNotifier] Cleaning up channel")
