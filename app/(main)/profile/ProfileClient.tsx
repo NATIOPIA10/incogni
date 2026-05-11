@@ -2,10 +2,11 @@
 
 import { GlassCard } from "@/components/ui/GlassCard"
 import { TrustMeter } from "@/components/ui/TrustMeter"
-import { ShieldCheck, Music, Coffee, Book, User, Settings, Save, X, Sparkles, Heart } from "lucide-react"
+import { ShieldCheck, Music, Coffee, Book, User, Settings, Save, X, Sparkles, Heart, LogOut } from "lucide-react"
 import { useState } from "react"
 import { updateProfile } from "@/app/actions/profile"
 import { useRouter } from "next/navigation"
+import { signOut } from "@/app/auth/actions"
 
 interface ProfileClientProps {
   profile: any
@@ -289,6 +290,19 @@ export default function ProfileClient({ profile }: ProfileClientProps) {
                 <Save className="w-5 h-5" /> Save Frequency
               </>
             )}
+          </button>
+        )}
+
+        {!isEditing && (
+          <button
+            onClick={async () => {
+              if (confirm("Are you sure you want to sign out?")) {
+                await signOut()
+              }
+            }}
+            className="w-full h-14 mt-6 bg-white/5 border border-white/10 rounded-2xl font-bold flex items-center justify-center gap-2 text-red-400 hover:bg-red-500/10 transition-all"
+          >
+            <LogOut className="w-5 h-5" /> Sign Out
           </button>
         )}
       </div>
