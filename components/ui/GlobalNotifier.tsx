@@ -121,12 +121,17 @@ export function GlobalNotifier({ userId }: { userId: string }) {
             text: latestMsg.content?.includes("||") ? "Sent an image" : (latestMsg.content || "New message")
           })
           
+          // Double Vibrate for haptic feedback
+          if ("vibrate" in navigator) {
+            navigator.vibrate([100, 50, 100]);
+          }
+
           setTimeout(() => setToast(null), 6000)
 
           if ("Notification" in window && Notification.permission === "granted") {
             try {
               // Try standard notification
-              new Notification("Incogni", { body: "New message!", icon: "/icon.png" })
+              new Notification("Incogni", { body: "New Resonance Detected", icon: "/icon.png" })
               
               // Also try through Service Worker for better background support
               if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
