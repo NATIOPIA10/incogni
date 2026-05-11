@@ -251,7 +251,26 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
     return true
   })
 
+  // DEBUGGING LOG
+  useEffect(() => {
+    if (!liveProfiles.length) return
+    console.log(`[Radar Debug] Max Range: ${maxRange}m`)
+    liveProfiles.forEach(p => {
+      const effectiveMyBucket = myLiveBucket || myBucket
+      const prox = getProximityLabel(effectiveMyBucket, p.geo_bucket)
+      console.log(`- ${p.display_name}: Distance=${prox.meters}m (Bucket: ${p.geo_bucket})`)
+    })
+  }, [liveProfiles, myLiveBucket, myBucket, maxRange])
+
   const hiddenByFilters = usersInRange.length - nearbyProfiles.length
+  
+  // Calculate users who are outside the radius but have a location
+  const usersOutsideRange = liveProfiles.filter(p => {
+    const effectiveMyBucket = myLiveBucket || myBucket
+    const { meters } = getProximityLabel(effectiveMyBucket, p.geo_bucket)
+    return meters !== null && meters > maxRange && meters < 10000 // Within 10km
+  }).length
+
   const hasLocation = !!(myLiveBucket || myBucket)
 
   return (
@@ -373,6 +392,19 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
           </p>
         )}
         
+        {/* Debug & Smart Range */}
+        <div className="mt-4 space-y-2">
+          {usersOutsideRange > 0 && (
+            <p className="text-[10px] text-[#A855F7] font-bold opacity-80 uppercase tracking-widest">
+              {usersOutsideRange} {usersOutsideRange === 1 ? 'person' : 'people'} outside {maxRange}m radius
+            </p>
+          )}
+          {hiddenByFilters > 0 && (
+            <p className="text-[10px] text-[#FF9E00] font-bold animate-pulse">
+              ⚠️ {hiddenByFilters} {hiddenByFilters === 1 ? 'person' : 'people'} nearby hidden by preferences
+            </p>
+          )}
+        </div>
       </div>
       {/* v1.0.1-clean-ui */}
 
