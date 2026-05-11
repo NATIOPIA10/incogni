@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { createClient } from "@/utils/supabase/client"
 import { motion, AnimatePresence } from "framer-motion"
 import { Shield, Sparkles, HeartPulse } from "lucide-react"
 import { Button } from "@/components/ui/Button"
@@ -10,6 +11,23 @@ import { GlassCard } from "@/components/ui/GlassCard"
 export default function Onboarding() {
   const router = useRouter()
   const [step, setStep] = useState(0)
+  const [checkingAuth, setCheckingAuth] = useState(true)
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        router.push('/radar')
+      } else {
+        setCheckingAuth(false)
+      }
+    }
+    checkUser()
+  }, [router])
+
+  if (checkingAuth) return null
+
 
   const steps = [
     {
