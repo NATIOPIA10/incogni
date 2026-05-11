@@ -245,6 +245,15 @@ export default function RadarClient({
     return meters !== null && meters <= maxRange
   })
 
+  // Count users within range who were filtered out by SERVER-SIDE preferences
+  // (Total profiles in DB - displayed profiles - distant profiles)
+  const totalWithinRange = liveProfiles.filter(p => {
+    const effectiveMyBucket = myLiveBucket || myBucket
+    const { meters } = getProximityLabel(effectiveMyBucket, p.geo_bucket)
+    return meters !== null && meters <= maxRange
+  }).length
+  const hiddenByFilters = totalWithinRange - nearbyProfiles.length
+
   const hasLocation = !!(myLiveBucket || myBucket)
 
   return (
@@ -368,6 +377,11 @@ export default function RadarClient({
         
         {/* Debug & Smart Range */}
         <div className="mt-4 space-y-2">
+          {hiddenByFilters > 0 && (
+            <p className="text-[10px] text-[#FF9E00] font-bold animate-pulse">
+              ⚠️ {hiddenByFilters} {hiddenByFilters === 1 ? 'person' : 'people'} nearby hidden by your filters
+            </p>
+          )}
           {nearbyProfiles.length === 0 && liveProfiles.length > 0 && !tempMaxRange && (
             <button 
               onClick={() => setTempMaxRange(5000)}
@@ -377,7 +391,7 @@ export default function RadarClient({
             </button>
           )}
           <p className="text-[10px] text-gray-600 font-medium opacity-50 uppercase tracking-tighter">
-            System Debug: {liveProfiles.length} profiles found in DB
+            System Debug: {liveProfiles.length} total profiles synced
           </p>
         </div>
       </div>
