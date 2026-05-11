@@ -77,60 +77,48 @@ export function GlobalNotifier({ userId }: { userId: string }) {
     console.log("[GlobalNotifier] Listening to global messages for user", userId)
     
     const channel = supabase
-      .channel('global-messages')
+      .channel('messages-universal')
       .on(
         'postgres_changes',
         { 
-          event: '*', // Listen to all events for debugging
+          event: 'INSERT', 
           schema: 'public', 
           table: 'messages',
         },
         (payload) => {
-          console.log("[GlobalNotifier] EVENT RECEIVED!", payload.eventType, payload)
-          
-          if (payload.eventType !== 'INSERT') return
-
+          console.log("[GlobalNotifier] MSG:", payload)
           const newMsg = payload.new
-          console.log("[GlobalNotifier] New message data:", newMsg)
           
-          if (newMsg.sender_id !== userId) {
-            const isCurrentlyInChat = pathnameRef.current?.includes(`/chat/${newMsg.match_id}`)
-            console.log(`[GlobalNotifier] Message from others (${newMsg.sender_id}). Me: ${userId}. In chat? ${isCurrentlyInChat}`)
+          // Only notify if not from us
+          if (newMsg && newMsg.sender_id !== userId) {
+            // Check if we are currently in THIS specific chat room
+            const isCurrentlyInThisChat = pathnameRef.current?.includes(newMsg.match_id)
             
-            if (!isCurrentlyInChat) {
-              console.log("[GlobalNotifier] TRIGGERING TOAST")
-              // Trigger visual in-app toast
+            if (!isCurrentlyInThisChat) {
               setToast({ 
-                id: newMsg.id, 
+                id: newMsg.id || String(Date.now()), 
                 matchId: newMsg.match_id, 
-                text: newMsg.content?.includes("||") ? "Sent an image" : newMsg.content 
+                text: newMsg.content?.includes("||") ? "Sent an image" : (newMsg.content || "New message")
               })
               
-              // Hide toast after 4 seconds
-              setTimeout(() => setToast(null), 4000)
+              setTimeout(() => setToast(null), 5000)
 
-              // Try native notification
-              try {
-                if ("Notification" in window && Notification.permission === "granted") {
-                  const options: any = {
-                    body: `New message received!`,
-                    icon: "/icon.png",
-                    vibrate: [100, 50, 100]
-                  }
-                  new Notification("Incogni Message", options)
-                }
-              } catch (e) {
-                console.error("[GlobalNotifier] Notification error:", e)
+              if ("Notification" in window && Notification.permission === "granted") {
+                try {
+                  new Notification("Incogni Message", {
+                    body: "New message received",
+                    icon: "/icon.png"
+                  })
+                } catch (e) {}
               }
               
-              // Play sound
               playMessageSound()
             }
           }
         }
       )
-      .subscribe((status, err) => {
-        console.log("[GlobalNotifier] Subscription status:", status, err || "")
+      .subscribe((status) => {
+        console.log("[GlobalNotifier] Status:", status)
       })
 
     return () => {
