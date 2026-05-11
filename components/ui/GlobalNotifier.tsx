@@ -81,7 +81,15 @@ export function GlobalNotifier({ userId }: { userId: string }) {
     if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission()
     }
+    
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(reg => console.log('SW Registered', reg))
+        .catch(err => console.error('SW Error', err))
+    }
   }, [])
+
 
   const lastMsgId = useRef<string | null>(null)
   const supabase = createClient()
