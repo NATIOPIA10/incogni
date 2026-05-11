@@ -95,22 +95,22 @@ function getProximityLabel(myBucket?: string, theirBucket?: string) {
   const [lat2, lon2] = theirBucket.split(",").map(Number)
   
   const R = 6371e3 // Earth's radius in meters
-  const φ1 = lat1 * Math.PI / 180
-  const φ2 = lat2 * Math.PI / 180
-  const Δφ = (lat2 - lat1) * Math.PI / 180
-  const Δλ = (lon2 - lon1) * Math.PI / 180
+  const phi1 = lat1 * Math.PI / 180
+  const phi2 = lat2 * Math.PI / 180
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLon = (lon2 - lon1) * Math.PI / 180
 
-  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-            Math.cos(φ1) * Math.cos(φ2) *
-            Math.sin(Δλ / 2) * Math.sin(Δλ / 2)
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(phi1) * Math.cos(phi2) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2)
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 
   const meters = R * c
   
   // Calculate cardinal direction
-  const y = Math.sin(Δλ) * Math.cos(φ2)
-  const x = Math.cos(φ1) * Math.sin(φ2) -
-            Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ)
+  const y = Math.sin(dLon) * Math.cos(phi2)
+  const x = Math.cos(phi1) * Math.sin(phi2) -
+            Math.sin(phi1) * Math.cos(phi2) * Math.cos(dLon)
   const brng = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360
   
   const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
@@ -124,17 +124,14 @@ function getProximityLabel(myBucket?: string, theirBucket?: string) {
   return { label, meters, cardinal }
 }
 
-export default function RadarClient({ 
-  profiles, 
-  myVibes, 
-  myBucket,
-  myRadius = 0.05
-}: { 
-  profiles: RadarProfile[]; 
-  myVibes: string[];
-  myBucket?: string;
-  myRadius?: number;
-}) {
+interface RadarClientProps {
+  profiles: RadarProfile[]
+  myBucket?: string
+  myRadius: number
+  myProfile: any
+}
+
+export default function RadarClient({ profiles, myBucket, myRadius, myProfile }: RadarClientProps) {
   const [selected, setSelected] = useState<RadarProfile | null>(null)
   const [message, setMessage] = useState("")
   const [sending, setSending] = useState(false)
@@ -239,21 +236,21 @@ export default function RadarClient({
   const [tempMaxRange, setTempMaxRange] = useState<number | null>(null)
   const maxRange = tempMaxRange || Math.max(myRadius * 1000, 10)
   
-  const nearbyProfiles = liveProfiles.filter(p => {
+  // 1. First filter by physical distance
+  const usersInRange = liveProfiles.filter(p => {
     const effectiveMyBucket = myLiveBucket || myBucket
     const { meters } = getProximityLabel(effectiveMyBucket, p.geo_bucket)
     return meters !== null && meters <= maxRange
   })
 
-  // Count users within range who were filtered out by SERVER-SIDE preferences
-  // (Total profiles in DB - displayed profiles - distant profiles)
-  const totalWithinRange = liveProfiles.filter(p => {
-    const effectiveMyBucket = myLiveBucket || myBucket
-    const { meters } = getProximityLabel(effectiveMyBucket, p.geo_bucket)
-    return meters !== null && meters <= maxRange
-  }).length
-  const hiddenByFilters = totalWithinRange - nearbyProfiles.length
+  // 2. Then filter by preferences for the actual display
+  const nearbyProfiles = usersInRange.filter(p => {
+    const myPref = myProfile?.preferred_gender
+    if (myPref && myPref !== "everyone" && p.gender !== myPref) return false
+    return true
+  })
 
+  const hiddenByFilters = usersInRange.length - nearbyProfiles.length
   const hasLocation = !!(myLiveBucket || myBucket)
 
   return (

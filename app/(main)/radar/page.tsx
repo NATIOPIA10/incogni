@@ -106,38 +106,11 @@ export default async function RadarPage() {
     redirect("/onboarding/personality")
   }
 
-  const myRadius = myProfile?.resonance_radius || 1.0
-
+  // We send all users to the client so it can handle the "Ghost" and "Distance" logic with better feedback
   const radarProfiles: RadarProfile[] = (others ?? [])
-    .filter(p => {
-      if (p.id === ADMIN_ID) return false;
-      if (!p.display_name) {
-        console.log(`Radar Filter: ${p.id} hidden (No nickname)`);
-        return false;
-      }
-      return true;
-    })
-    // 4. Intelligent Filtering (Distance, Gender & Preference)
-    .filter(p => {
-      /* Distance filter based on resonance radius (DISABLED FOR DEBUG) */
-      
-      /* Gender preference filter */
-      const myPref = myProfile.preferred_gender
-      if (myPref && myPref !== "everyone" && p.gender !== myPref) {
-        return false
-      }
-      
-      return true
-    })
+    .filter(p => p.id !== ADMIN_ID && !!p.display_name)
     .map(p => ({
-      id: p.id,
-      display_name: p.display_name,
-      age: p.age,
-      gender: p.gender,
-      personality_vibes: p.personality_vibes ?? [],
-      seeking_vibes: p.seeking_vibes ?? [],
-      geo_bucket: p.geo_bucket,
-      trust_score: p.trust_score,
+      ...p,
       compatibility: calcCompatibility(
         myVibes,
         mySeeking,
