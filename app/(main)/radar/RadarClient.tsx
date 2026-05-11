@@ -372,25 +372,6 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
           </p>
         )}
         
-        {/* Debug & Smart Range */}
-        <div className="mt-4 space-y-2">
-          {hiddenByFilters > 0 && (
-            <p className="text-[10px] text-[#FF9E00] font-bold animate-pulse">
-              ⚠️ {hiddenByFilters} {hiddenByFilters === 1 ? 'person' : 'people'} nearby hidden by your filters
-            </p>
-          )}
-          {nearbyProfiles.length === 0 && liveProfiles.length > 0 && !tempMaxRange && (
-            <button 
-              onClick={() => setTempMaxRange(5000)}
-              className="text-[10px] uppercase tracking-widest text-[#A855F7] font-bold border border-[#A855F7]/30 px-4 py-2 rounded-full hover:bg-[#A855F7]/10 transition-all"
-            >
-              Widening Search to 5KM...
-            </button>
-          )}
-          <p className="text-[10px] text-gray-600 font-medium opacity-50 uppercase tracking-tighter">
-            System Debug: {liveProfiles.length} total profiles synced
-          </p>
-        </div>
       </div>
 
       {/* ── Profile detail drawer ─────────────────────── */}
