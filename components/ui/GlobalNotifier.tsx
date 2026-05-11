@@ -81,23 +81,29 @@ export function GlobalNotifier({ userId }: { userId: string }) {
       .on(
         'postgres_changes',
         { 
-          event: 'INSERT', 
+          event: '*', // Listen to all events for debugging
           schema: 'public', 
           table: 'messages',
         },
         (payload) => {
-          console.log("[GlobalNotifier] Received message payload:", payload)
+          console.log("[GlobalNotifier] EVENT RECEIVED!", payload.eventType, payload)
+          
+          if (payload.eventType !== 'INSERT') return
+
           const newMsg = payload.new
+          console.log("[GlobalNotifier] New message data:", newMsg)
+          
           if (newMsg.sender_id !== userId) {
             const isCurrentlyInChat = pathnameRef.current?.includes(`/chat/${newMsg.match_id}`)
-            console.log(`[GlobalNotifier] Message from others. Currently in chat? ${isCurrentlyInChat}`)
+            console.log(`[GlobalNotifier] Message from others (${newMsg.sender_id}). Me: ${userId}. In chat? ${isCurrentlyInChat}`)
             
             if (!isCurrentlyInChat) {
+              console.log("[GlobalNotifier] TRIGGERING TOAST")
               // Trigger visual in-app toast
               setToast({ 
                 id: newMsg.id, 
                 matchId: newMsg.match_id, 
-                text: newMsg.content.includes("||") ? "Sent an image" : newMsg.content 
+                text: newMsg.content?.includes("||") ? "Sent an image" : newMsg.content 
               })
               
               // Hide toast after 4 seconds
@@ -113,7 +119,9 @@ export function GlobalNotifier({ userId }: { userId: string }) {
                   }
                   new Notification("Incogni Message", options)
                 }
-              } catch (e) {}
+              } catch (e) {
+                console.error("[GlobalNotifier] Notification error:", e)
+              }
               
               // Play sound
               playMessageSound()
@@ -121,8 +129,8 @@ export function GlobalNotifier({ userId }: { userId: string }) {
           }
         }
       )
-      .subscribe((status) => {
-        console.log("[GlobalNotifier] Subscription status:", status)
+      .subscribe((status, err) => {
+        console.log("[GlobalNotifier] Subscription status:", status, err || "")
       })
 
     return () => {
