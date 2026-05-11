@@ -404,6 +404,9 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
               ⚠️ {hiddenByFilters} {hiddenByFilters === 1 ? 'person' : 'people'} nearby hidden by preferences
             </p>
           )}
+          <p className="text-[10px] text-gray-500 mt-2 font-mono">
+            DB: {liveProfiles.length} total users | GPS: {hasLocation ? "Locked" : "Waiting"}
+          </p>
         </div>
       </div>
       {/* v1.0.1-clean-ui */}
