@@ -237,7 +237,7 @@ export default function RadarClient({
 
   // Unified list of users within range
   const [tempMaxRange, setTempMaxRange] = useState<number | null>(null)
-  const maxRange = tempMaxRange || Math.max(myRadius * 1000, 50)
+  const maxRange = tempMaxRange || Math.max(myRadius * 1000, 10)
   
   const nearbyProfiles = liveProfiles.filter(p => {
     const effectiveMyBucket = myLiveBucket || myBucket

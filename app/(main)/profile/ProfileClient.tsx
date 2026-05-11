@@ -20,7 +20,7 @@ export default function ProfileClient({ profile }: ProfileClientProps) {
     display_name: profile?.display_name || '',
     age: profile?.age || 20,
     gender: profile?.gender || 'not_set',
-    resonance_radius: profile?.resonance_radius || 1.0,
+    resonance_radius: profile?.resonance_radius || 0.1,
     seeking_vibes: profile?.seeking_vibes || []
   })
   const [isSaving, setIsSaving] = useState(false)
@@ -140,7 +140,7 @@ export default function ProfileClient({ profile }: ProfileClientProps) {
             </div>
 
             <div>
-              <label className="block text-[10px] uppercase tracking-widest text-[#978d9a] mb-2 text-left ml-1">Resonance Reach</label>
+              <label className="block text-[10px] uppercase tracking-widest text-[#978d9a] mb-2 text-left ml-1">Resonance Reach (Max 100m)</label>
               <div className="flex gap-2">
                 {[0.01, 0.025, 0.05, 0.1].map((r) => (
                   <button
