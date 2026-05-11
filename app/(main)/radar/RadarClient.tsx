@@ -236,9 +236,10 @@ export default function RadarClient({
   const close = () => setSelected(null)
 
   // Unified list of users within range
-  const maxRange = Math.max(myRadius * 1000, 50)
+  const [tempMaxRange, setTempMaxRange] = useState<number | null>(null)
+  const maxRange = tempMaxRange || Math.max(myRadius * 1000, 50)
+  
   const nearbyProfiles = liveProfiles.filter(p => {
-    // Fallback to initial myBucket if live GPS hasn't fired yet
     const effectiveMyBucket = myLiveBucket || myBucket
     const { meters } = getProximityLabel(effectiveMyBucket, p.geo_bucket)
     return meters !== null && meters <= maxRange
@@ -356,7 +357,7 @@ export default function RadarClient({
           {!hasLocation 
             ? "Establishing GPS lock..." 
             : nearbyProfiles.length === 0
-              ? `No one within ${maxRange}m — try a wider radius in Profile`
+              ? `No one within ${maxRange}m`
               : `Scanning ${maxRange}m resonant field...`}
         </p>
         {hasLocation && nearbyProfiles.length > 0 && (
@@ -364,6 +365,21 @@ export default function RadarClient({
             {nearbyProfiles.length} {nearbyProfiles.length === 1 ? "connection" : "connections"} nearby
           </p>
         )}
+        
+        {/* Debug & Smart Range */}
+        <div className="mt-4 space-y-2">
+          {nearbyProfiles.length === 0 && liveProfiles.length > 0 && !tempMaxRange && (
+            <button 
+              onClick={() => setTempMaxRange(5000)}
+              className="text-[10px] uppercase tracking-widest text-[#A855F7] font-bold border border-[#A855F7]/30 px-4 py-2 rounded-full hover:bg-[#A855F7]/10 transition-all"
+            >
+              Widening Search to 5KM...
+            </button>
+          )}
+          <p className="text-[10px] text-gray-600 font-medium opacity-50 uppercase tracking-tighter">
+            System Debug: {liveProfiles.length} profiles found in DB
+          </p>
+        </div>
       </div>
 
       {/* ── Profile detail drawer ─────────────────────── */}
