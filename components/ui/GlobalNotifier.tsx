@@ -103,7 +103,7 @@ export function GlobalNotifier({ userId }: { userId: string }) {
             // Check if we are currently in THIS specific chat room
             const isCurrentlyInThisChat = pathnameRef.current?.includes(newMsg.match_id)
             
-            if (!isCurrentlyInThisChat) {
+            if (true) { // Force notification everywhere for testing
               setToast({ 
                 id: newMsg.id || String(Date.now()), 
                 matchId: newMsg.match_id, 
