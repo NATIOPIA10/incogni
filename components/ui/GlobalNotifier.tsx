@@ -34,6 +34,12 @@ export function GlobalNotifier({ userId }: { userId: string }) {
     osc.stop(ctx.currentTime + 0.2)
   }
 
+  const pathnameRef = useRef(pathname)
+  
+  useEffect(() => {
+    pathnameRef.current = pathname
+  }, [pathname])
+
   useEffect(() => {
     // Request permission once
     if ("Notification" in window && Notification.permission === "default") {
@@ -41,11 +47,8 @@ export function GlobalNotifier({ userId }: { userId: string }) {
     }
 
     const supabase = createClient()
+    console.log("[GlobalNotifier] Listening to global messages for user", userId)
     
-    // We listen to the messages table where receiver_id == userId
-    // Note: Supabase RLS on 'messages' table will naturally filter this if set up correctly, 
-    // but the filter string `receiver_id=eq.${userId}` ensures we only process our own messages.
-    // Wait, the table might just be 'messages'. Let's listen to all inserts and check.
     const channel = supabase
       .channel('global-messages')
       .on(
@@ -56,11 +59,11 @@ export function GlobalNotifier({ userId }: { userId: string }) {
           table: 'messages',
         },
         (payload) => {
+          console.log("[GlobalNotifier] Received message payload:", payload)
           const newMsg = payload.new
-          // Check if message is for us
-          // And don't notify if we are already in the chat room for this match
           if (newMsg.sender_id !== userId) {
-            const isCurrentlyInChat = pathname?.includes(`/chat/${newMsg.match_id}`)
+            const isCurrentlyInChat = pathnameRef.current?.includes(`/chat/${newMsg.match_id}`)
+            console.log(`[GlobalNotifier] Message from others. Currently in chat? ${isCurrentlyInChat}`)
             
             if (!isCurrentlyInChat) {
               if ("Notification" in window && Notification.permission === "granted") {
@@ -76,12 +79,15 @@ export function GlobalNotifier({ userId }: { userId: string }) {
           }
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log("[GlobalNotifier] Subscription status:", status)
+      })
 
     return () => {
+      console.log("[GlobalNotifier] Cleaning up channel")
       supabase.removeChannel(channel)
     }
-  }, [userId, pathname])
+  }, [userId])
 
   return null
 }
