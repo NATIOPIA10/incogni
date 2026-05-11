@@ -81,9 +81,12 @@ export function GlobalNotifier({ userId }: { userId: string }) {
     if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission()
     }
+  }, [])
 
-    const lastMsgId = useRef<string | null>(null)
+  const lastMsgId = useRef<string | null>(null)
+  const supabase = createClient()
 
+  useEffect(() => {
     const pollMessages = async () => {
       try {
         const { data: latestMsg } = await supabase
@@ -115,17 +118,11 @@ export function GlobalNotifier({ userId }: { userId: string }) {
       } catch (e) {}
     }
 
-    // Poll every 3 seconds for guaranteed mobile delivery
     const interval = setInterval(pollMessages, 3000)
-    pollMessages() // Initial check
+    pollMessages()
 
     return () => {
       clearInterval(interval)
-    }
-
-    return () => {
-      console.log("[GlobalNotifier] Cleaning up channel")
-      supabase.removeChannel(channel)
     }
   }, [userId])
 
