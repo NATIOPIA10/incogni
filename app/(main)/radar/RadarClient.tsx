@@ -140,10 +140,46 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
   const [liveProfiles, setLiveProfiles] = useState(profiles)
   const [myLiveBucket, setMyLiveBucket] = useState(myBucket)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const notifiedUsers = useRef<Set<string>>(new Set())
   
   const router = useRouter()
   const watchId = useRef<number | null>(null)
   const lastUpdate = useRef<number>(0)
+  
+  // Audio context ref for synthesizer
+  const audioCtx = useRef<AudioContext | null>(null)
+
+  const playPingSound = () => {
+    if (!audioCtx.current) {
+      audioCtx.current = new (window.AudioContext || (window as any).webkitAudioContext)()
+    }
+    const ctx = audioCtx.current
+    if (ctx.state === 'suspended') ctx.resume()
+
+    const osc = ctx.createOscillator()
+    const gainNode = ctx.createGain()
+    
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(880, ctx.currentTime) // A5 note
+    osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.1)
+    
+    gainNode.gain.setValueAtTime(0, ctx.currentTime)
+    gainNode.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.05)
+    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.5)
+    
+    osc.connect(gainNode)
+    gainNode.connect(ctx.destination)
+    
+    osc.start()
+    osc.stop(ctx.currentTime + 1.5)
+  }
+
+  // Request Notification permission
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission()
+    }
+  }, [])
 
   useEffect(() => {
     // Sync initial profiles to live profiles when props change
@@ -251,6 +287,29 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
     if (myPref && myPref !== "everyone" && p.gender !== myPref) return false
     return true
   })
+
+  // 3. Trigger Notifications for High Resonance
+  useEffect(() => {
+    let triggered = false
+    nearbyProfiles.forEach(p => {
+      if (p.compatibility > 50 && !notifiedUsers.current.has(p.id)) {
+        notifiedUsers.current.add(p.id)
+        triggered = true
+        
+        if ("Notification" in window && Notification.permission === "granted") {
+          new Notification("Incogni Resonance Alert!", {
+            body: `A ${p.compatibility}% resonance match is nearby!`,
+            icon: "/icon.png",
+            vibrate: [200, 100, 200]
+          })
+        }
+      }
+    })
+    
+    if (triggered) {
+      playPingSound()
+    }
+  }, [nearbyProfiles])
 
   const hasLocation = !!(myLiveBucket || myBucket)
 
