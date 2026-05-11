@@ -348,18 +348,28 @@ export default function RadarClient({
       </div>
 
       {/* Status text */}
-      <div className="mt-6 text-center">
-        <p className="text-[#cec3d0] text-sm">
-          {liveProfiles.length === 0
-            ? "No one nearby yet — check back soon"
-            : `Scanning for resonant frequencies...`}
-        </p>
-        {liveProfiles.length > 0 && (
-          <p className="text-[#00D1FF] font-medium text-sm animate-pulse mt-1">
-            {liveProfiles.length} {liveProfiles.length === 1 ? "connection" : "connections"} nearby
-          </p>
-        )}
-      </div>
+      {(() => {
+        const maxRange = Math.max(myRadius * 1000, 50)
+        const nearby = liveProfiles.filter(p => {
+          const { meters } = getProximityLabel(myLiveBucket, p.geo_bucket)
+          return meters !== null && meters <= maxRange
+        })
+        
+        return (
+          <div className="mt-6 text-center">
+            <p className="text-[#cec3d0] text-sm">
+              {nearby.length === 0
+                ? "No one nearby yet — check back soon"
+                : `Scanning for resonant frequencies...`}
+            </p>
+            {nearby.length > 0 && (
+              <p className="text-[#00D1FF] font-medium text-sm animate-pulse mt-1">
+                {nearby.length} {nearby.length === 1 ? "connection" : "connections"} within {maxRange}m
+              </p>
+            )}
+          </div>
+        )
+      })()}
 
       {/* ── Profile detail drawer ─────────────────────── */}
       <AnimatePresence>
