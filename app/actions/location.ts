@@ -9,8 +9,8 @@ export async function updateLocation(lat: number, lng: number) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: "Not authenticated" }
 
-  // Round to 3 decimal places for "Geo-Bucketing" privacy (approx 100m precision)
-  const bucket = `${lat.toFixed(4)},${lng.toFixed(4)}`
+  // Use 8 decimal places for exact, high-precision GPS tracking (centimeter accuracy)
+  const bucket = `${lat.toFixed(8)},${lng.toFixed(8)}`
 
   const { error } = await supabase
     .from('profiles')
