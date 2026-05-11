@@ -290,11 +290,17 @@ export default function RadarClient({
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-[#00D1FF] shadow-[0_0_20px_#00D1FF] z-20" />
 
         {/* Profile blips */}
-        {liveProfiles.map((profile, i) => {
-          // Convert resonance_radius (km) to meters for calculation, default to 50m if very small
-          const maxRange = Math.max(myRadius * 1000, 50)
-          const { angle, distance } = getRealPosition(myLiveBucket, profile.geo_bucket, i, profile.id, maxRange)
-          const radians = (angle * Math.PI) / 180
+        {liveProfiles
+          .filter(p => {
+            const maxRange = Math.max(myRadius * 1000, 50)
+            const { meters } = getProximityLabel(myLiveBucket, p.geo_bucket)
+            return meters !== null && meters <= maxRange
+          })
+          .map((profile, i) => {
+            // Convert resonance_radius (km) to meters for calculation, default to 50m if very small
+            const maxRange = Math.max(myRadius * 1000, 50)
+            const { angle, distance } = getRealPosition(myLiveBucket, profile.geo_bucket, i, profile.id, maxRange)
+            const radians = (angle * Math.PI) / 180
           // radar is 288px wide → max radius ≈ 130px; distance is 30-70 → scale 0.3-0.7
           const radius = (distance / 100) * 130
           const x = Math.cos(radians) * radius
