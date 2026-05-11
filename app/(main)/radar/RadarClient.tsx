@@ -235,6 +235,13 @@ export default function RadarClient({
   // Close the detail card when tapping the backdrop
   const close = () => setSelected(null)
 
+  // Unified list of users within range
+  const maxRange = Math.max(myRadius * 1000, 50)
+  const nearbyProfiles = liveProfiles.filter(p => {
+    const { meters } = getProximityLabel(myLiveBucket, p.geo_bucket)
+    return meters !== null && meters <= maxRange
+  })
+
   return (
     <div className="flex flex-col items-center w-full h-full relative">
       {/* ── Radar canvas ─────────────────────────────── */}
@@ -300,17 +307,9 @@ export default function RadarClient({
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-[#00D1FF] shadow-[0_0_20px_#00D1FF] z-20" />
 
         {/* Profile blips */}
-        {liveProfiles
-          .filter(p => {
-            const maxRange = Math.max(myRadius * 1000, 50)
-            const { meters } = getProximityLabel(myLiveBucket, p.geo_bucket)
-            return meters !== null && meters <= maxRange
-          })
-          .map((profile, i) => {
-            // Convert resonance_radius (km) to meters for calculation, default to 50m if very small
-            const maxRange = Math.max(myRadius * 1000, 50)
-            const { angle, distance } = getRealPosition(myLiveBucket, profile.geo_bucket, i, profile.id, maxRange)
-            const radians = (angle * Math.PI) / 180
+        {nearbyProfiles.map((profile, i) => {
+          const { angle, distance } = getRealPosition(myLiveBucket, profile.geo_bucket, i, profile.id, maxRange)
+          const radians = (angle * Math.PI) / 180
           // radar is 288px wide → max radius ≈ 130px; distance is 30-70 → scale 0.3-0.7
           const radius = (distance / 100) * 130
           const x = Math.cos(radians) * radius
@@ -348,28 +347,18 @@ export default function RadarClient({
       </div>
 
       {/* Status text */}
-      {(() => {
-        const maxRange = Math.max(myRadius * 1000, 50)
-        const nearby = liveProfiles.filter(p => {
-          const { meters } = getProximityLabel(myLiveBucket, p.geo_bucket)
-          return meters !== null && meters <= maxRange
-        })
-        
-        return (
-          <div className="mt-6 text-center">
-            <p className="text-[#cec3d0] text-sm">
-              {nearby.length === 0
-                ? "No one nearby yet — check back soon"
-                : `Scanning for resonant frequencies...`}
-            </p>
-            {nearby.length > 0 && (
-              <p className="text-[#00D1FF] font-medium text-sm animate-pulse mt-1">
-                {nearby.length} {nearby.length === 1 ? "connection" : "connections"} within {maxRange}m
-              </p>
-            )}
-          </div>
-        )
-      })()}
+      <div className="mt-6 text-center" key={`status-${nearbyProfiles.length}-${myLiveBucket}`}>
+        <p className="text-[#cec3d0] text-sm">
+          {nearbyProfiles.length === 0
+            ? "No one nearby yet — check back soon"
+            : `Scanning for resonant frequencies...`}
+        </p>
+        {nearbyProfiles.length > 0 && (
+          <p className="text-[#00D1FF] font-medium text-sm animate-pulse mt-1">
+            {nearbyProfiles.length} {nearbyProfiles.length === 1 ? "connection" : "connections"} within {maxRange}m
+          </p>
+        )}
+      </div>
 
       {/* ── Profile detail drawer ─────────────────────── */}
       <AnimatePresence>
