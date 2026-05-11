@@ -20,31 +20,39 @@ export function GlobalNotifier({ userId }: { userId: string }) {
       const ctx = audioCtx.current
       if (ctx.state === 'suspended') ctx.resume()
 
-      // Create a more audible "chime" sound
+      // Create a "Mega-Volume" triple chime
       const osc1 = ctx.createOscillator()
       const osc2 = ctx.createOscillator()
+      const osc3 = ctx.createOscillator()
       const gainNode = ctx.createGain()
       
       osc1.type = 'sine'
-      osc1.frequency.setValueAtTime(880, ctx.currentTime) // A5
-      osc1.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.5)
+      osc1.frequency.setValueAtTime(880, ctx.currentTime)
+      osc1.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.6)
       
       osc2.type = 'sine'
-      osc2.frequency.setValueAtTime(1320, ctx.currentTime) // E6
-      osc2.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.5)
+      osc2.frequency.setValueAtTime(1320, ctx.currentTime)
+      osc2.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.6)
+
+      osc3.type = 'square' // Square waves are much louder/piercing
+      osc3.frequency.setValueAtTime(220, ctx.currentTime)
+      osc3.frequency.exponentialRampToValueAtTime(110, ctx.currentTime + 0.6)
       
       gainNode.gain.setValueAtTime(0, ctx.currentTime)
-      gainNode.gain.linearRampToValueAtTime(0.8, ctx.currentTime + 0.02) // Louder
-      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8)
+      gainNode.gain.linearRampToValueAtTime(1.5, ctx.currentTime + 0.02) // Max volume boost
+      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.9)
       
       osc1.connect(gainNode)
       osc2.connect(gainNode)
+      osc3.connect(gainNode)
       gainNode.connect(ctx.destination)
       
       osc1.start()
       osc2.start()
-      osc1.stop(ctx.currentTime + 0.8)
-      osc2.stop(ctx.currentTime + 0.8)
+      osc3.start()
+      osc1.stop(ctx.currentTime + 1.0)
+      osc2.stop(ctx.currentTime + 1.0)
+      osc3.stop(ctx.currentTime + 1.0)
     } catch (e) {
       console.error("Audio ping failed:", e)
     }
