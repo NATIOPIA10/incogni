@@ -23,55 +23,58 @@ export type RadarProfile = {
   gender?: string
 }
 
-// Calculate real position based on geographic coordinates
+// Calculate real position based on geographic coordinates (Haversine for distance)
 function getRealPosition(myBucket: string | undefined, theirBucket: string | undefined, index: number, id: string, maxRangeMeters: number = 2000) {
   const hash = id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0)
 
   if (!myBucket || !theirBucket) {
-    // fallback if no location
-    const angle = ((hash * 137.5 + index * 60) % 360) // golden-angle spread
-    const distance = 30 + (hash % 40) // 30–70% of radar radius
+    const angle = ((hash * 137.5 + index * 60) % 360) 
+    const distance = 30 + (hash % 40)
     return { angle, distance }
   }
   
-  const [myLat, myLng] = myBucket.split(",").map(Number)
-  const [theirLat, theirLng] = theirBucket.split(",").map(Number)
+  const [lat1, lon1] = myBucket.split(",").map(Number)
+  const [lat2, lon2] = theirBucket.split(",").map(Number)
   
-  const dLat = theirLat - myLat
-  const dLng = theirLng - myLng
-  
-  // Calculate distance in meters
-  const diff = Math.sqrt(Math.pow(dLat, 2) + Math.pow(dLng, 2))
-  const meters = diff * 111000
+  const R = 6371e3
+  const φ1 = lat1 * Math.PI / 180
+  const φ2 = lat2 * Math.PI / 180
+  const Δφ = (lat2 - lat1) * Math.PI / 180
+  const Δλ = (lon2 - lon1) * Math.PI / 180
 
-  // Math.atan2(y, x). Standard UI: y is down, x is right.
-  // Geographic: North is up, East is right.
-  // To map North to top of UI, y should be -dLat.
-  let angle = 0;
+  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ / 2) * Math.sin(Δλ / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  const meters = R * c
+
+  // Bearing for radar angle
+  const y = Math.sin(Δλ) * Math.cos(φ2)
+  const x = Math.cos(φ1) * Math.sin(φ2) -
+            Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ)
+  // Radar UI expects North as top (-90deg), East as right (0deg)
+  // atan2(y, x) gives angle from East (+x) counter-clockwise.
+  // In UI: angle 0 is right, -90 is top.
+  // Our x/y from bearing is standard: y is North-South diff, x is East-West diff? No.
+  // Standard bearing math: y = sin(dLon) * cos(lat2); x = cos(lat1)*sin(lat2) - sin(lat1)*cos(lat2)*cos(dLon)
+  // This gives bearing from North. To map to our UI:
+  // Bearing 0 (N) -> UI -90
+  // Bearing 90 (E) -> UI 0
+  // So: UI_Angle = Bearing - 90
+  const bearing = (Math.atan2(y, x) * 180 / Math.PI)
+  let angle = bearing - 90
   
   if (meters === 0) {
-    // If they are exactly on top of me (same coordinates), give them a scattered angle
     angle = (hash * 137.5) % 360
   } else {
-    angle = (Math.atan2(-dLat, dLng) * 180) / Math.PI
-    // Add small deterministic jitter (-15 to 15 degrees) so close users don't perfectly overlap
-    angle += (hash % 30) - 15
+    angle += (hash % 20) - 10 // small jitter
   }
 
-  // Use the dynamic range from profile (default to 50m if not set/zero, but we'll pass it from component)
   let distancePercentage = (meters / maxRangeMeters) * 100
-  
-  // Add small deterministic distance jitter (-3% to +3%)
-  distancePercentage += (hash % 7) - 3
+  distancePercentage += (hash % 6) - 3
 
-  // Clamp so they don't fall outside the radar
   if (distancePercentage > 95) distancePercentage = 95
-  
-  // Minimum distance so it doesn't overlap the center "me" dot
-  // If they are very close, scatter them slightly based on hash
-  if (distancePercentage < 15) {
-    distancePercentage = 15 + (hash % 10) 
-  }
+  if (distancePercentage < 15) distancePercentage = 15 + (hash % 10) 
   
   return { angle, distance: distancePercentage }
 }
@@ -83,29 +86,39 @@ function getVibeColor(compat: number) {
   return "#10B981"                   // green – low
 }
 
-// Proximity logic based on buckets
+// Proximity logic based on Haversine formula
 function getProximityLabel(myBucket?: string, theirBucket?: string) {
   if (!myBucket || !theirBucket) return { label: "Nearby", meters: null, cardinal: "" }
-  if (myBucket === theirBucket) return { label: "Very Close", meters: 15, cardinal: "Nearby" }
+  if (myBucket === theirBucket) return { label: "Very Close", meters: 0, cardinal: "Nearby" }
   
-  const [myLat, myLng] = myBucket.split(",").map(Number)
-  const [theirLat, theirLng] = theirBucket.split(",").map(Number)
+  const [lat1, lon1] = myBucket.split(",").map(Number)
+  const [lat2, lon2] = theirBucket.split(",").map(Number)
   
-  const dLat = theirLat - myLat
-  const dLng = theirLng - myLng
-  const diff = Math.sqrt(Math.pow(dLat, 2) + Math.pow(dLng, 2))
+  const R = 6371e3 // Earth's radius in meters
+  const φ1 = lat1 * Math.PI / 180
+  const φ2 = lat2 * Math.PI / 180
+  const Δφ = (lat2 - lat1) * Math.PI / 180
+  const Δλ = (lon2 - lon1) * Math.PI / 180
+
+  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ / 2) * Math.sin(Δλ / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+
+  const meters = R * c
   
-  // 1 degree is roughly 111,000 meters
-  const meters = Math.round(diff * 111000)
+  // Calculate cardinal direction
+  const y = Math.sin(Δλ) * Math.cos(φ2)
+  const x = Math.cos(φ1) * Math.sin(φ2) -
+            Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ)
+  const brng = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360
   
-  // Calculate angle for direction
-  const angle = (Math.atan2(dLng, dLat) * 180) / Math.PI
   const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
-  const index = Math.round(((angle + 360) % 360) / 45) % 8
+  const index = Math.round(brng / 45) % 8
   const cardinal = directions[index]
   
   let label = "Nearby"
-  if (meters < 50) label = "Very Close"
+  if (meters < 20) label = "Very Close"
   else if (meters < 200) label = "On Campus"
   
   return { label, meters, cardinal }
