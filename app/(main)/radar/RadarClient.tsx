@@ -373,6 +373,7 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
         )}
         
       </div>
+      {/* v1.0.1-clean-ui */}
 
       {/* ── Profile detail drawer ─────────────────────── */}
       <AnimatePresence>
