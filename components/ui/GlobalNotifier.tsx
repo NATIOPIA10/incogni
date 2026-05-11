@@ -86,11 +86,11 @@ export function GlobalNotifier({ userId }: { userId: string }) {
     console.log("[GlobalNotifier] Listening to global messages for user", userId)
     
     const channel = supabase
-      .channel('schema-db-changes')
+      .channel('messages_realtime')
       .on(
         'postgres_changes',
         { 
-          event: '*', 
+          event: 'INSERT', 
           schema: 'public', 
           table: 'messages',
         },
