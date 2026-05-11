@@ -117,7 +117,17 @@ export function GlobalNotifier({ userId }: { userId: string }) {
 
           if ("Notification" in window && Notification.permission === "granted") {
             try {
+              // Try standard notification
               new Notification("Incogni", { body: "New message!", icon: "/icon.png" })
+              
+              // Also try through Service Worker for better background support
+              if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({
+                  type: 'SHOW_NOTIFICATION',
+                  title: 'Incogni Resonance',
+                  body: 'A new signal has emerged'
+                });
+              }
             } catch (e) {}
           }
           

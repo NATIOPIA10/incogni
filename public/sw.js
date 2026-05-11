@@ -1,17 +1,30 @@
 self.addEventListener('push', (event) => {
-  const data = event.data.json();
   const options = {
-    body: data.body,
+    body: 'New Signal Received!',
     icon: '/icon.png',
     badge: '/icon.png',
-    vibrate: [100, 50, 100],
-    data: {
-      url: data.url || '/'
-    }
+    vibrate: [200, 100, 200],
+    priority: 'high',
+    requireInteraction: true,
+    data: { url: '/chat' }
   };
   event.waitUntil(
-    self.registration.showNotification(data.title, options)
+    self.registration.showNotification('Incogni Resonance', options)
   );
+});
+
+// Also handle messages from the main app when it's minimized
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
+    const options = {
+      body: event.data.body,
+      icon: '/icon.png',
+      badge: '/icon.png',
+      vibrate: [200, 100, 200],
+      tag: 'resonance-alert'
+    };
+    self.registration.showNotification(event.data.title, options);
+  }
 });
 
 self.addEventListener('notificationclick', (event) => {
