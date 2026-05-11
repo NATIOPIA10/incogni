@@ -161,17 +161,18 @@ export default function RadarClient({
     }
   }, [])
 
-  const toggleTracking = () => {
-    if (isTracking) {
+  // Auto-start tracking on mount
+  useEffect(() => {
+    startTracking()
+    return () => {
       if (watchId.current !== null) {
         navigator.geolocation.clearWatch(watchId.current)
-        watchId.current = null
       }
-      setIsTracking(false)
-      return
     }
+  }, [])
 
-    if (!navigator.geolocation) return alert("Geolocation not supported")
+  const startTracking = () => {
+    if (!navigator.geolocation) return
     
     setIsTracking(true)
     watchId.current = navigator.geolocation.watchPosition(
@@ -188,13 +189,23 @@ export default function RadarClient({
         }
       }, 
       (err) => {
-        console.error(err)
+        console.error("GPS Error:", err)
         setIsTracking(false)
-        if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current)
-        alert("Location access denied or lost. Live tracking stopped.")
       },
-      { enableHighAccuracy: true, maximumAge: 0 }
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
     )
+  }
+
+  const toggleTracking = () => {
+    if (isTracking) {
+      if (watchId.current !== null) {
+        navigator.geolocation.clearWatch(watchId.current)
+        watchId.current = null
+      }
+      setIsTracking(false)
+    } else {
+      startTracking()
+    }
   }
 
   // Close the detail card when tapping the backdrop
