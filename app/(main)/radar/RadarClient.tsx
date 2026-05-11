@@ -471,7 +471,7 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
                 {/* Shared vibes */}
                 {(() => {
                   const shared = (selected.personality_vibes ?? []).filter(v =>
-                    myVibes.includes(v)
+                    (myProfile?.personality_vibes || []).includes(v)
                   )
                   return shared.length > 0 ? (
                     <div className="mb-4">
