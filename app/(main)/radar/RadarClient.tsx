@@ -24,7 +24,7 @@ export type RadarProfile = {
 }
 
 // Calculate real position based on geographic coordinates
-function getRealPosition(myBucket: string | undefined, theirBucket: string | undefined, index: number, id: string) {
+function getRealPosition(myBucket: string | undefined, theirBucket: string | undefined, index: number, id: string, maxRangeMeters: number = 2000) {
   const hash = id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0)
 
   if (!myBucket || !theirBucket) {
@@ -58,8 +58,7 @@ function getRealPosition(myBucket: string | undefined, theirBucket: string | und
     angle += (hash % 30) - 15
   }
 
-  // Assume radar represents a 2km radius (2000 meters)
-  const maxRangeMeters = 2000
+  // Use the dynamic range from profile (default to 50m if not set/zero, but we'll pass it from component)
   let distancePercentage = (meters / maxRangeMeters) * 100
   
   // Add small deterministic distance jitter (-3% to +3%)
@@ -115,11 +114,13 @@ function getProximityLabel(myBucket?: string, theirBucket?: string) {
 export default function RadarClient({ 
   profiles, 
   myVibes, 
-  myBucket 
+  myBucket,
+  myRadius = 0.05
 }: { 
   profiles: RadarProfile[]; 
   myVibes: string[];
   myBucket?: string;
+  myRadius?: number;
 }) {
   const [selected, setSelected] = useState<RadarProfile | null>(null)
   const [message, setMessage] = useState("")
@@ -277,7 +278,9 @@ export default function RadarClient({
 
         {/* Profile blips */}
         {liveProfiles.map((profile, i) => {
-          const { angle, distance } = getRealPosition(myLiveBucket, profile.geo_bucket, i, profile.id)
+          // Convert resonance_radius (km) to meters for calculation, default to 50m if very small
+          const maxRange = Math.max(myRadius * 1000, 50)
+          const { angle, distance } = getRealPosition(myLiveBucket, profile.geo_bucket, i, profile.id, maxRange)
           const radians = (angle * Math.PI) / 180
           // radar is 288px wide → max radius ≈ 130px; distance is 30-70 → scale 0.3-0.7
           const radius = (distance / 100) * 130

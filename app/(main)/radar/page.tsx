@@ -167,6 +167,7 @@ export default async function RadarPage() {
         profiles={radarProfiles} 
         myVibes={myVibes} 
         myBucket={myProfile.geo_bucket}
+        myRadius={myRadius}
       />
     </main>
   )
