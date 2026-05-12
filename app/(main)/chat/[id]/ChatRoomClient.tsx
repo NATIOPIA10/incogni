@@ -121,9 +121,6 @@ export default function ChatRoomClient({
       newMessage.reply_to_id = replyTo.id
     }
 
-    // Optimistic UI
-    const optimisticMsg = { ...newMessage, id: Date.now().toString(), created_at: new Date().toISOString() }
-    setMessages(prev => [...prev, optimisticMsg])
     setInput("")
     setPendingImage(null)
     setReplyTo(null)
@@ -134,10 +131,12 @@ export default function ChatRoomClient({
 
     if (error) {
       console.error("Failed to send message:", error)
+      // Optional: restore input if failed
     } else {
       router.refresh()
     }
   }
+
 
   const handleDeleteMessage = async (msgId: string) => {
     const { error } = await supabase
