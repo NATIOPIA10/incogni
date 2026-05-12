@@ -27,8 +27,12 @@ export default function ProfileClient({ profile }: ProfileClientProps) {
     age: profile?.age || 20,
     gender: profile?.gender || 'not_set',
     resonance_radius: profile?.resonance_radius || 0.1,
-    seeking_vibes: profile?.seeking_vibes || []
+    seeking_vibes: profile?.seeking_vibes || [],
+    skin_color: profile?.skin_color || '',
+    height: profile?.height || 170,
+    weight: profile?.weight || 70
   })
+
 
   useEffect(() => {
     const fetchVibes = async () => {
@@ -150,6 +154,46 @@ export default function ProfileClient({ profile }: ProfileClientProps) {
                 </select>
               </div>
             </div>
+
+            <div>
+              <label className="block text-[10px] uppercase tracking-widest text-[#978d9a] mb-2 text-left ml-1">Skin Tone</label>
+              <select 
+                value={editedProfile.skin_color}
+                onChange={(e) => setEditedProfile({...editedProfile, skin_color: e.target.value})}
+                className="w-full bg-white/5 border border-white/10 rounded-xl h-12 px-4 text-sm focus:border-[#A855F7] transition-all appearance-none"
+              >
+                <option value="">Select...</option>
+                <option value="fair">Fair</option>
+                <option value="light">Light</option>
+                <option value="medium">Medium</option>
+                <option value="olive">Olive</option>
+                <option value="tan">Tan</option>
+                <option value="brown">Brown</option>
+                <option value="dark">Dark</option>
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[10px] uppercase tracking-widest text-[#978d9a] mb-2 text-left ml-1">Height (cm)</label>
+                <input 
+                  type="number"
+                  value={editedProfile.height}
+                  onChange={(e) => setEditedProfile({...editedProfile, height: parseInt(e.target.value)})}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl h-12 px-4 text-sm focus:border-[#A855F7] transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] uppercase tracking-widest text-[#978d9a] mb-2 text-left ml-1">Weight (kg)</label>
+                <input 
+                  type="number"
+                  value={editedProfile.weight}
+                  onChange={(e) => setEditedProfile({...editedProfile, weight: parseInt(e.target.value)})}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl h-12 px-4 text-sm focus:border-[#A855F7] transition-all"
+                />
+              </div>
+            </div>
+
 
             <div>
               <label className="block text-[10px] uppercase tracking-widest text-[#978d9a] mb-2 text-left ml-1">Resonance Reach (Max 100m)</label>

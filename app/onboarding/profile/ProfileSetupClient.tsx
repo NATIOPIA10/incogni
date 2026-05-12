@@ -16,8 +16,12 @@ export default function ProfileSetupClient({ profile }: { profile: any }) {
     display_name: profile?.display_name || "",
     age: profile?.age || 20,
     gender: profile?.gender || "not_set",
-    preferred_gender: profile?.preferred_gender || "everyone"
+    preferred_gender: profile?.preferred_gender || "everyone",
+    skin_color: profile?.skin_color || "",
+    height: profile?.height || 170,
+    weight: profile?.weight || 70
   })
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -100,6 +104,53 @@ export default function ProfileSetupClient({ profile }: { profile: any }) {
                 </select>
               </div>
             </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] uppercase tracking-widest text-[#978d9a] font-bold pl-1">Skin Tone</label>
+              <select 
+                required
+                value={formData.skin_color}
+                onChange={e => setFormData({...formData, skin_color: e.target.value})}
+                className="w-full bg-white/5 border border-white/10 rounded-xl h-12 px-4 text-xs focus:border-[#A855F7] transition-all appearance-none text-[#cec3d0]"
+              >
+                <option value="">Select...</option>
+                <option value="fair">Fair</option>
+                <option value="light">Light</option>
+                <option value="medium">Medium</option>
+                <option value="olive">Olive</option>
+                <option value="tan">Tan</option>
+                <option value="brown">Brown</option>
+                <option value="dark">Dark</option>
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] uppercase tracking-widest text-[#978d9a] font-bold pl-1">Height (cm)</label>
+                <input 
+                  type="number" 
+                  required
+                  min={100}
+                  max={250}
+                  value={formData.height}
+                  onChange={e => setFormData({...formData, height: parseInt(e.target.value)})}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl h-12 px-4 text-sm focus:border-[#A855F7] transition-all"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] uppercase tracking-widest text-[#978d9a] font-bold pl-1">Weight (kg)</label>
+                <input 
+                  type="number" 
+                  required
+                  min={30}
+                  max={300}
+                  value={formData.weight}
+                  onChange={e => setFormData({...formData, weight: parseInt(e.target.value)})}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl h-12 px-4 text-sm focus:border-[#A855F7] transition-all"
+                />
+              </div>
+            </div>
+
 
             <div className="space-y-1.5">
               <label className="text-[10px] uppercase tracking-widest text-[#978d9a] font-bold pl-1">Interested In</label>
