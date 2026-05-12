@@ -421,43 +421,88 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-[#00D1FF] shadow-[0_0_20px_#00D1FF] z-20" />
 
         {/* Profile blips */}
-        {nearbyProfiles.map((profile, i) => {
-          const { angle, distance } = getRealPosition(myLiveBucket, profile.geo_bucket, i, profile.id, maxRange)
-          const radians = (angle * Math.PI) / 180
-          // radar is 288px wide → max radius ≈ 130px; distance is 30-70 → scale 0.3-0.7
-          const radius = (distance / 100) * 130
-          const x = Math.cos(radians) * radius
-          const y = Math.sin(radians) * radius
-          const color = getVibeColor(profile.compatibility)
+        {(() => {
+          const positions = nearbyProfiles.map((profile, i) => {
+            const { angle, distance } = getRealPosition(myLiveBucket, profile.geo_bucket, i, profile.id, maxRange)
+            const radians = (angle * Math.PI) / 180
+            // radar is 288px wide → max radius ≈ 130px; distance is 30-70 → scale 0.3-0.7
+            const radius = (distance / 100) * 130
+            const x = Math.cos(radians) * radius
+            const y = Math.sin(radians) * radius
+            return { profile, x, y, i }
+          })
 
-          return (
-            <motion.button
-              key={profile.id}
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.3 + i * 0.15, type: "spring" }}
-              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex items-center justify-center"
-              style={{ x, y }}
-              whileHover={{ scale: 1.25 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => setSelected(profile)}
-              aria-label={`View profile with ${profile.compatibility}% compatibility`}
-            >
-              {/* Glow halo */}
-              <div
-                className="absolute w-10 h-10 rounded-full blur-md opacity-60"
-                style={{ background: color }}
-              />
-              {/* Glass disc */}
-              <GlassCard className="w-10 h-10 rounded-full relative border flex items-center justify-center overflow-hidden"
-                style={{ borderColor: `${color}60` }}>
-                <span className="text-[10px] font-bold" style={{ color }}>
-                  {profile.compatibility}%
-                </span>
-              </GlassCard>
-            </motion.button>
-          )
-        })}
+          // Apply forces to separate overlapping markers
+          const minDistance = 45; // 40px avatar width/height + 5px spacing
+          for (let iter = 0; iter < 10; iter++) {
+            let moved = false;
+            for (let i = 0; i < positions.length; i++) {
+              for (let j = i + 1; j < positions.length; j++) {
+                const p1 = positions[i];
+                const p2 = positions[j];
+                const dx = p1.x - p2.x;
+                const dy = p1.y - p2.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                
+                if (dist < minDistance) {
+                  moved = true;
+                  const pushDist = (minDistance - dist) / 2;
+                  const pushAngle = dist === 0 ? Math.random() * Math.PI * 2 : Math.atan2(dy, dx);
+                  
+                  p1.x += Math.cos(pushAngle) * pushDist;
+                  p1.y += Math.sin(pushAngle) * pushDist;
+                  p2.x -= Math.cos(pushAngle) * pushDist;
+                  p2.y -= Math.sin(pushAngle) * pushDist;
+
+                  // Constrain back to the radar radius (130px max)
+                  const r1 = Math.sqrt(p1.x * p1.x + p1.y * p1.y);
+                  if (r1 > 130) {
+                    p1.x = (p1.x / r1) * 130;
+                    p1.y = (p1.y / r1) * 130;
+                  }
+                  const r2 = Math.sqrt(p2.x * p2.x + p2.y * p2.y);
+                  if (r2 > 130) {
+                    p2.x = (p2.x / r2) * 130;
+                    p2.y = (p2.y / r2) * 130;
+                  }
+                }
+              }
+            }
+            if (!moved) break;
+          }
+
+          return positions.map(({ profile, x, y, i }) => {
+            const color = getVibeColor(profile.compatibility)
+
+            return (
+              <motion.button
+                key={profile.id}
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.3 + i * 0.15, type: "spring" }}
+                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex items-center justify-center"
+                style={{ x, y }}
+                whileHover={{ scale: 1.25 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setSelected(profile)}
+                aria-label={`View profile with ${profile.compatibility}% compatibility`}
+              >
+                {/* Glow halo */}
+                <div
+                  className="absolute w-10 h-10 rounded-full blur-md opacity-60"
+                  style={{ background: color }}
+                />
+                {/* Glass disc */}
+                <GlassCard className="w-10 h-10 rounded-full relative border flex items-center justify-center overflow-hidden"
+                  style={{ borderColor: `${color}60` }}>
+                  <span className="text-[10px] font-bold" style={{ color }}>
+                    {profile.compatibility}%
+                  </span>
+                </GlassCard>
+              </motion.button>
+            )
+          })
+        })()}
       </div>
 
       {/* Status text */}

@@ -52,18 +52,28 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Admin route protection: Ensure only admins can enter /admin
-  if (pathname.startsWith('/admin') && user) {
+  // Admin route protection & Suspension check
+  if (user) {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role')
+      .select('role, is_suspended')
       .eq('id', user.id)
       .single()
 
-    if (!profile || !['moderator', 'admin', 'super_admin'].includes(profile.role)) {
+    // Handle suspension
+    if (profile?.is_suspended && pathname !== '/suspended') {
       const url = request.nextUrl.clone()
-      url.pathname = '/'
+      url.pathname = '/suspended'
       return NextResponse.redirect(url)
+    }
+
+    // Handle admin access
+    if (pathname.startsWith('/admin')) {
+      if (!profile || !['moderator', 'admin', 'super_admin'].includes(profile.role)) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/'
+        return NextResponse.redirect(url)
+      }
     }
   }
 

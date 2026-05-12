@@ -103,8 +103,58 @@ export function GlobalNotifier({ userId }: { userId: string }) {
   const supabase = createClient()
 
   useEffect(() => {
+    console.log(`INITIALIZING GLOBAL NOTIFIER FOR USER: ${userId}`)
+    
+    // 1. Suspension Listener (Real-time)
+    const channel = supabase
+      .channel('suspension-sync')
+      .on(
+        'postgres_changes',
+        { 
+          event: 'UPDATE', 
+          schema: 'public', 
+          table: 'profiles',
+          filter: `id=eq.${userId}` 
+        },
+        (payload) => {
+          console.log("REAL-TIME PROFILE UPDATE RECEIVED:", payload)
+          if (payload.new.is_suspended === true) {
+            console.log("SUSPENSION DETECTED - FORCING REDIRECT")
+            router.push('/suspended')
+            setTimeout(() => window.location.reload(), 100)
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log("SUSPENSION SYNC STATUS:", status)
+      })
+
+    // 2. Poll Messages & Fallback Suspension Check
     const pollMessages = async () => {
+      console.log("POLLING SESSION STATUS...")
       try {
+        // Fallback: Check if user is suspended during polling
+        const { data: profile, error: pError } = await supabase
+          .from('profiles')
+          .select('is_suspended')
+          .eq('id', userId)
+          .single()
+        
+        if (pError) {
+          console.error("POLLING ERROR:", pError)
+          // If column doesn't exist, stop polling for suspension to prevent spamming errors
+          if (pError.code === 'PGRST204' || pError.message?.includes("column")) {
+             console.warn("Suspension column not found. Skipping suspension check.")
+          }
+        }
+
+        if (profile?.is_suspended) {
+          console.log("POLLING DETECTED SUSPENSION - FORCING REDIRECT")
+          router.push('/suspended')
+          setTimeout(() => window.location.reload(), 100)
+          return
+        }
+
         const { data: latestMsg } = await supabase
           .from('messages')
           .select('id, match_id, sender_id, content')
@@ -121,7 +171,6 @@ export function GlobalNotifier({ userId }: { userId: string }) {
             text: latestMsg.content?.includes("||") ? "Sent an image" : (latestMsg.content || "New message")
           })
           
-          // Double Vibrate for haptic feedback
           if ("vibrate" in navigator) {
             navigator.vibrate([100, 50, 100]);
           }
@@ -130,10 +179,7 @@ export function GlobalNotifier({ userId }: { userId: string }) {
 
           if ("Notification" in window && Notification.permission === "granted") {
             try {
-              // Try standard notification
               new Notification("Incogni", { body: "New Resonance Detected", icon: "/icon.png" })
-              
-              // Also try through Service Worker for better background support
               if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
                 navigator.serviceWorker.controller.postMessage({
                   type: 'SHOW_NOTIFICATION',
@@ -154,8 +200,9 @@ export function GlobalNotifier({ userId }: { userId: string }) {
 
     return () => {
       clearInterval(interval)
+      supabase.removeChannel(channel)
     }
-  }, [userId])
+  }, [userId, supabase, router])
 
   return (
     <AnimatePresence>

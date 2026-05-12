@@ -62,6 +62,45 @@ export async function toggleUserSuspension(userId: string, isSuspended: boolean)
   revalidatePath("/admin/users")
 }
 
+export async function resetUserPassword(email: string) {
+  const { supabase, adminId } = await checkAdmin()
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/reset-password`,
+  })
+
+  if (error) throw error
+
+  await supabase.from("admin_logs").insert({
+    admin_id: adminId,
+    action_type: 'RESET_PASSWORD_INITIATED',
+    reason: `Admin triggered password reset for ${email}`
+  })
+}
+
+export async function blockUser(userId: string) {
+  const { supabase, adminId } = await checkAdmin()
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ 
+      is_suspended: true,
+      verification_status: 'rejected'
+    })
+    .eq("id", userId)
+
+  if (error) throw error
+
+  await supabase.from("admin_logs").insert({
+    admin_id: adminId,
+    action_type: 'BLOCK_USER',
+    target_user_id: userId,
+    reason: 'Admin manually blocked user'
+  })
+
+  revalidatePath("/admin/users")
+}
+
 export async function updateAIWeights(weights: any) {
   const { supabase, adminId } = await checkAdmin()
 
