@@ -326,11 +326,17 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
               router.refresh()
               setTimeout(() => setIsRefreshing(false), 1000)
             }}
-            className="p-3 rounded-full border transition-all bg-white/5 border-white/10 text-[#cec3d0] hover:bg-white/10"
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-full border transition-all duration-300 backdrop-blur-xl ${
+              isRefreshing 
+                ? 'bg-[#00D1FF]/20 border-[#00D1FF]/50 text-[#00D1FF] shadow-[0_0_20px_rgba(0,209,255,0.3)]' 
+                : 'bg-white/5 border-white/10 text-[#cec3d0] hover:bg-white/10 hover:border-white/20'
+            }`}
             aria-label="Refresh Radar"
           >
-            <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span className="text-xs font-bold uppercase tracking-widest">Scan</span>
           </button>
+
           
           {isTracking && (
             <span className="text-[10px] uppercase font-bold text-[#10B981] animate-pulse bg-[#10B981]/20 px-2 py-1 rounded-full border border-[#10B981]/40">
