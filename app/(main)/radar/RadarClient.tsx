@@ -144,7 +144,20 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
   const [liveProfiles, setLiveProfiles] = useState(profiles)
   const [myLiveBucket, setMyLiveBucket] = useState(myBucket)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [availableVibes, setAvailableVibes] = useState<string[]>([])
   const notifiedUsers = useRef<Set<string>>(new Set())
+  const supabase = createClient()
+  
+  useEffect(() => {
+    const fetchVibes = async () => {
+      const { data } = await supabase
+        .from('vibe_definitions')
+        .select('label')
+      if (data) setAvailableVibes(data.map(v => v.label))
+    }
+    fetchVibes()
+  }, [])
+
   
   const router = useRouter()
   const watchId = useRef<number | null>(null)
@@ -562,9 +575,10 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
 
                 {/* Shared vibes */}
                 {(() => {
-                  const shared = (selected.personality_vibes ?? []).filter(v =>
-                    (myProfile?.personality_vibes || []).includes(v)
-                  )
+                  const shared = (selected.personality_vibes ?? [])
+                    .filter(v => (myProfile?.personality_vibes || []).includes(v))
+                    .filter(v => availableVibes.includes(v))
+                  
                   return shared.length > 0 ? (
                     <div className="mb-4">
                       <p className="text-xs text-[#cec3d0] mb-2 uppercase tracking-wider">Shared Vibes</p>
@@ -580,18 +594,24 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
                 })()}
 
                 {/* Their vibes */}
-                {selected.personality_vibes?.length > 0 && (
-                  <div>
-                    <p className="text-xs text-[#cec3d0] mb-2 uppercase tracking-wider">Their Vibe</p>
-                    <div className="flex flex-wrap gap-2">
-                      {selected.personality_vibes.map(v => (
-                        <span key={v} className="px-3 py-1 rounded-full text-xs font-medium bg-white/5 border border-white/10 text-[#cec3d0]">
-                          {v}
-                        </span>
-                      ))}
+                {(() => {
+                  const filteredTheirVibes = (selected.personality_vibes ?? [])
+                    .filter(v => availableVibes.includes(v))
+
+                  return filteredTheirVibes.length > 0 ? (
+                    <div>
+                      <p className="text-xs text-[#cec3d0] mb-2 uppercase tracking-wider">Their Vibe</p>
+                      <div className="flex flex-wrap gap-2">
+                        {filteredTheirVibes.map(v => (
+                          <span key={v} className="px-3 py-1 rounded-full text-xs font-medium bg-white/5 border border-white/10 text-[#cec3d0]">
+                            {v}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  ) : null
+                })()}
+
 
                 <p className="text-[#978d9a] text-[10px] mt-4 text-center leading-relaxed">
                   Profiles are anonymous to protect privacy. Connect to reveal more.
