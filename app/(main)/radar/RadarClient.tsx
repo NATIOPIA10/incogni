@@ -297,11 +297,11 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
   const [tempMaxRange, setTempMaxRange] = useState<number | null>(null)
   const maxRange = tempMaxRange || Math.max(myRadius * 1000, 10)
   
-  // 1. Filter out users without any location
+  // 1. Filter out users without any location and outside of max range
   const usersInRange = liveProfiles.filter(p => {
     const effectiveMyBucket = myLiveBucket || myBucket
     const { meters } = getProximityLabel(effectiveMyBucket, p.geo_bucket)
-    return meters !== null // Always show users, clamp distance in rendering
+    return meters !== null && meters <= maxRange
   })
 
   // 2. Filter by preferences for the actual display

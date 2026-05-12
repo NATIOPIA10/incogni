@@ -17,7 +17,7 @@ export default function ProfileSetupClient({ profile }: { profile: any }) {
     age: profile?.age || 20,
     gender: profile?.gender || "not_set",
     preferred_gender: profile?.preferred_gender || "everyone",
-    skin_tone: profile?.skin_tone || "",
+    skin_color: profile?.skin_color || "",
     height: profile?.height || 170,
     weight: profile?.weight || 70
   })
@@ -109,8 +109,8 @@ export default function ProfileSetupClient({ profile }: { profile: any }) {
               <label className="text-[10px] uppercase tracking-widest text-[#978d9a] font-bold pl-1">Skin Tone</label>
               <select 
                 required
-                value={formData.skin_tone}
-                onChange={e => setFormData({...formData, skin_tone: e.target.value})}
+                value={formData.skin_color}
+                onChange={e => setFormData({...formData, skin_color: e.target.value})}
                 className="w-full bg-white/5 border border-white/10 rounded-xl h-12 px-4 text-xs focus:border-[#A855F7] transition-all appearance-none text-[#cec3d0]"
               >
                 <option value="">Select...</option>

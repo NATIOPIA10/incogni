@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Space_Grotesk, Inter } from "next/font/google";
 import "./globals.css";
-import { createClient } from "@/utils/supabase/server";
-import { GlobalNotifier } from "@/components/ui/GlobalNotifier";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
@@ -44,20 +42,11 @@ export const metadata: Metadata = {
   }
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  let user = null
-  try {
-    const supabase = await createClient()
-    const { data } = await supabase.auth.getUser()
-    user = data.user
-  } catch (err) {
-    console.error("RootLayout auth check failed:", err)
-  }
-
   return (
     <html
       lang="en"
@@ -65,7 +54,6 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-[#0B0E14] text-[#e1e2eb] font-sans" suppressHydrationWarning>
-        {user && <GlobalNotifier userId={user.id} />}
         {children}
       </body>
     </html>

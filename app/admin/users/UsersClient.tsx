@@ -340,7 +340,7 @@ export default function UsersClient({ initialUsers, totalCount }: UsersClientPro
                   </div>
                   <div className="flex items-center gap-3 text-sm">
                     <Palette className="w-4 h-4 text-[#978d9a]" />
-                    <span className="text-white capitalize">{selectedUser.skin_tone || 'Not recorded'} Tone</span>
+                    <span className="text-white capitalize">{selectedUser.skin_color || 'Not recorded'} Tone</span>
                   </div>
                 </div>
               </div>

@@ -41,6 +41,7 @@ export default async function MainLayout({
 
   return (
     <div className="flex flex-col min-h-screen">
+      {user && <GlobalNotifier userId={user.id} />}
       <div className="flex-1 pb-24">
         {children}
       </div>
