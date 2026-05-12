@@ -77,11 +77,17 @@ function getRealPosition(myBucket: string | undefined, theirBucket: string | und
   let distancePercentage = (meters / maxRangeMeters) * 100
   distancePercentage += (hash % 6) - 3
 
+  // Prevent overlap: if distance is too close to another or exact, add jitter
+  // The 'index' and 'hash' ensure that even users in the same bucket spread out
+  angle += (index * 15) % 30 
+  distancePercentage += (index * 5) % 15
+
   if (distancePercentage > 95) distancePercentage = 95
   if (distancePercentage < 15) distancePercentage = 15 + (hash % 10) 
   
   return { angle, distance: distancePercentage }
 }
+
 
 // Pick a colour for the glow based on compatibility
 function getVibeColor(compat: number) {
