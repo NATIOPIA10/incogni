@@ -64,8 +64,9 @@ export default async function RadarPage() {
     // 3. Fetch other users
     const { data: othersData, error: othersError } = await supabase
       .from("profiles")
-      .select("id, personality_vibes, seeking_vibes, verification_status, geo_bucket, privacy_mode, trust_score, gender, display_name, age, role")
+      .select("id, personality_vibes, seeking_vibes, verification_status, geo_bucket, privacy_mode, trust_score, gender, display_name, age, role, skin_color, height, weight")
       .neq("id", user.id)
+
     
     if (othersError) {
       console.error("Error fetching other profiles:", othersError);
