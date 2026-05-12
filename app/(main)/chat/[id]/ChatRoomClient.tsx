@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from "react"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { TrustMeter } from "@/components/ui/TrustMeter"
-import { Send, Lock, Unlock, Image as ImageIcon, ChevronLeft, Check, XCircle } from "lucide-react"
+import { Send, Lock, Unlock, Image as ImageIcon, ChevronLeft, Check, XCircle, MoreVertical, Edit2, Trash2, Reply, CornerDownRight, Save } from "lucide-react"
+
 import { createClient } from "@/utils/supabase/client"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -36,6 +37,11 @@ export default function ChatRoomClient({
   const router = useRouter()
   const [isUploading, setIsUploading] = useState(false)
   const [pendingImage, setPendingImage] = useState<string | null>(null)
+  const [replyTo, setReplyTo] = useState<any | null>(null)
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
+  const [editInput, setEditInput] = useState("")
+  const [showMenuId, setShowMenuId] = useState<string | null>(null)
+
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -76,17 +82,22 @@ export default function ChatRoomClient({
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*', // Listen to INSERT, UPDATE, DELETE
           schema: 'public',
           table: 'messages',
           filter: `match_id=eq.${matchId}`
         },
         (payload) => {
-          // Add message if not already present (avoid duplicates from optimistic UI)
-          setMessages(prev => {
-            if (prev.find(m => m.id === payload.new.id)) return prev
-            return [...prev, payload.new]
-          })
+          if (payload.eventType === 'INSERT') {
+            setMessages(prev => {
+              if (prev.find(m => m.id === payload.new.id)) return prev
+              return [...prev, payload.new]
+            })
+          } else if (payload.eventType === 'UPDATE') {
+            setMessages(prev => prev.map(m => m.id === payload.new.id ? payload.new : m))
+          } else if (payload.eventType === 'DELETE') {
+            setMessages(prev => prev.filter(m => m.id === payload.old.id))
+          }
         }
       )
       .subscribe()
@@ -96,20 +107,26 @@ export default function ChatRoomClient({
     }
   }, [matchId, supabase])
 
-  const handleSend = async () => {
-    if (!input.trim()) return
 
-    const newMessage = {
+  const handleSend = async () => {
+    if (!input.trim() && !pendingImage) return
+
+    const newMessage: any = {
       match_id: matchId,
       sender_id: currentUser.id,
-      content: pendingImage ? `${pendingImage}||${input}` : input,
+      content: pendingImage ? (input.trim() ? `${pendingImage}||${input}` : pendingImage) : input,
+    }
+
+    if (replyTo) {
+      newMessage.reply_to_id = replyTo.id
     }
 
     // Optimistic UI
-    const optimisticMsg = { ...newMessage, id: Date.now(), created_at: new Date().toISOString() }
+    const optimisticMsg = { ...newMessage, id: Date.now().toString(), created_at: new Date().toISOString() }
     setMessages(prev => [...prev, optimisticMsg])
     setInput("")
     setPendingImage(null)
+    setReplyTo(null)
 
     const { error } = await supabase
       .from("messages")
@@ -121,6 +138,40 @@ export default function ChatRoomClient({
       router.refresh()
     }
   }
+
+  const handleDeleteMessage = async (msgId: string) => {
+    const { error } = await supabase
+      .from("messages")
+      .delete()
+      .eq("id", msgId)
+      .eq("sender_id", currentUser.id) // Security check
+
+    if (error) {
+      console.error("Delete error:", error)
+    } else {
+      setMessages(prev => prev.filter(m => m.id !== msgId))
+      setShowMenuId(null)
+    }
+  }
+
+  const handleEditMessage = async (msgId: string) => {
+    if (!editInput.trim()) return
+
+    const { error } = await supabase
+      .from("messages")
+      .update({ content: editInput })
+      .eq("id", msgId)
+      .eq("sender_id", currentUser.id)
+
+    if (error) {
+      console.error("Edit error:", error)
+    } else {
+      setEditingMessageId(null)
+      setEditInput("")
+      setShowMenuId(null)
+    }
+  }
+
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -192,40 +243,126 @@ export default function ChatRoomClient({
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 pb-32">
         {messages.map(msg => {
           const isMe = msg.sender_id === currentUser.id;
+          const isEditing = editingMessageId === msg.id;
+          const replyMsg = msg.reply_to_id ? messages.find(m => m.id === msg.reply_to_id) : null;
+          
           return (
-            <div key={msg.id} className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}>
-              <div className={`max-w-[85%] px-4 py-3 rounded-2xl shadow-lg border backdrop-blur-md transition-all ${
-                isMe 
-                  ? "bg-[#A855F7]/20 border-[#A855F7]/30 rounded-tr-none text-white shadow-[#A855F7]/5" 
-                  : "bg-white/5 border-white/10 rounded-tl-none text-[#978d9a]"
-              }`}>
-                {msg.content.includes('||') ? (
-                  <div className="space-y-2">
-                    <img 
-                      src={msg.content.split('||')[0]} 
-                      alt="Shared resonance" 
-                      className="max-w-full rounded-lg border border-white/10 shadow-sm"
-                    />
-                    {msg.content.split('||')[1] && (
-                      <p className="text-sm leading-relaxed">{msg.content.split('||')[1]}</p>
-                    )}
+            <div key={msg.id} className={`flex flex-col ${isMe ? "items-end" : "items-start"} relative group`}>
+              {/* Reply Preview Above Message */}
+              {replyMsg && (
+                <div className={`flex items-center gap-2 mb-1 px-2 opacity-60 scale-90 origin-bottom-${isMe ? 'right' : 'left'}`}>
+                  <CornerDownRight className="w-3 h-3" />
+                  <div className="text-[10px] truncate max-w-[150px] italic">
+                    {replyMsg.content.includes('||') ? "Image" : replyMsg.content}
                   </div>
-                ) : msg.content.startsWith('http') ? (
-                  <img 
-                    src={msg.content} 
-                    alt="Shared image" 
-                    className="max-w-full rounded-lg border border-white/10 shadow-sm"
-                  />
-                ) : (
-                  <p className="text-sm leading-relaxed">{msg.content}</p>
+                </div>
+              )}
+
+              <div className="flex items-start gap-2 max-w-[85%] group">
+                {isMe && !isEditing && (
+                  <button 
+                    onClick={() => setShowMenuId(showMenuId === msg.id ? null : msg.id)}
+                    className="opacity-0 group-hover:opacity-100 p-1 mt-2 text-[#4c444f] hover:text-[#00D1FF] transition-all"
+                  >
+                    <MoreVertical className="w-4 h-4" />
+                  </button>
+                )}
+
+                <div className={`px-4 py-3 rounded-2xl shadow-lg border backdrop-blur-md transition-all relative ${
+                  isMe 
+                    ? "bg-[#A855F7]/20 border-[#A855F7]/30 rounded-tr-none text-white shadow-[#A855F7]/5" 
+                    : "bg-white/5 border-white/10 rounded-tl-none text-[#978d9a]"
+                }`}>
+                  {isEditing ? (
+                    <div className="flex flex-col gap-2 min-w-[200px]">
+                      <textarea
+                        autoFocus
+                        value={editInput}
+                        onChange={(e) => setEditInput(e.target.value)}
+                        className="bg-transparent border-none text-sm focus:outline-none resize-none w-full"
+                        rows={2}
+                      />
+                      <div className="flex justify-end gap-2">
+                        <button onClick={() => setEditingMessageId(null)} className="p-1 text-red-400 hover:bg-red-400/10 rounded">
+                          <XCircle className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleEditMessage(msg.id)} className="p-1 text-[#00D1FF] hover:bg-[#00D1FF]/10 rounded">
+                          <Save className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {msg.content.includes('||') ? (
+                        <div className="space-y-2">
+                          <img 
+                            src={msg.content.split('||')[0]} 
+                            alt="Shared resonance" 
+                            className="max-w-full rounded-lg border border-white/10 shadow-sm"
+                          />
+                          {msg.content.split('||')[1] && (
+                            <p className="text-sm leading-relaxed">{msg.content.split('||')[1]}</p>
+                          )}
+                        </div>
+                      ) : msg.content.startsWith('http') ? (
+                        <img 
+                          src={msg.content} 
+                          alt="Shared image" 
+                          className="max-w-full rounded-lg border border-white/10 shadow-sm"
+                        />
+                      ) : (
+                        <p className="text-sm leading-relaxed">{msg.content}</p>
+                      )}
+                    </>
+                  )}
+
+                  {/* Context Menu Popup */}
+                  {showMenuId === msg.id && (
+                    <GlassCard className="absolute -top-12 right-0 p-1 flex gap-1 z-30 shadow-2xl border-white/20 animate-in fade-in zoom-in duration-200">
+                      <button 
+                        onClick={() => {
+                          setEditingMessageId(msg.id);
+                          setEditInput(msg.content.includes('||') ? msg.content.split('||')[1] : msg.content);
+                          setShowMenuId(null);
+                        }}
+                        className="p-2 hover:bg-white/10 rounded-lg text-amber-400"
+                        title="Edit"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteMessage(msg.id)}
+                        className="p-2 hover:bg-red-500/10 rounded-lg text-red-400"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </GlassCard>
+                  )}
+                </div>
+
+                {!isMe && !isEditing && (
+                  <button 
+                    onClick={() => setReplyTo(msg)}
+                    className="opacity-0 group-hover:opacity-100 p-1 mt-2 text-[#4c444f] hover:text-[#00D1FF] transition-all"
+                  >
+                    <Reply className="w-4 h-4" />
+                  </button>
                 )}
               </div>
-              <span className="text-[10px] text-[#4c444f] mt-1.5 px-1 font-medium tracking-tighter uppercase">
-                {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </span>
+
+              <div className="flex items-center gap-2 mt-1.5 px-1">
+                <span className="text-[10px] text-[#4c444f] font-medium tracking-tighter uppercase">
+                  {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+                {msg.updated_at !== msg.created_at && (
+                  <span className="text-[8px] text-[#4c444f] italic">Edited</span>
+                )}
+              </div>
             </div>
           );
         })}
+
 
         {isPending && !isInitiator && (
           <div className="flex flex-col items-center gap-4 py-8">
@@ -260,7 +397,25 @@ export default function ChatRoomClient({
       </div>
 
       <div className="p-4 bg-[#0B0E14]/80 backdrop-blur-md border-t border-white/5 sticky bottom-0 z-20 pb-28">
+        {replyTo && (
+          <div className="max-w-md mx-auto mb-3 bg-white/5 rounded-xl p-3 border border-[#00D1FF]/30 flex items-center justify-between animate-in slide-in-from-bottom-2">
+            <div className="flex items-center gap-3 overflow-hidden">
+              <Reply className="w-4 h-4 text-[#00D1FF] shrink-0" />
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase font-bold text-[#00D1FF]">Replying to</p>
+                <p className="text-xs text-[#978d9a] truncate italic">
+                  {replyTo.content.includes('||') ? "Image message" : replyTo.content}
+                </p>
+              </div>
+            </div>
+            <button onClick={() => setReplyTo(null)} className="p-1 hover:bg-white/10 rounded-full">
+              <XCircle className="w-4 h-4 text-[#978d9a]" />
+            </button>
+          </div>
+        )}
+
         {pendingImage && (
+
           <div className="max-w-md mx-auto mb-3 relative group">
             <div className="w-20 h-20 rounded-xl overflow-hidden border-2 border-[#A855F7] shadow-lg shadow-[#A855F7]/20">
               <img src={pendingImage} alt="Preview" className="w-full h-full object-cover" />
