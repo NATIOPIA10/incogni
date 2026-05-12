@@ -18,6 +18,18 @@ export default function Onboarding() {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
+        // Check if user is an admin - Admins can go anywhere
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single()
+
+        if (profile?.role === 'admin' || profile?.role === 'super_admin') {
+          // Admins don't get forced to onboarding from here
+          return
+        }
+        
         router.push('/radar')
       } else {
         setCheckingAuth(false)
@@ -25,6 +37,7 @@ export default function Onboarding() {
     }
     checkUser()
   }, [router])
+
 
   if (checkingAuth) return null
 
