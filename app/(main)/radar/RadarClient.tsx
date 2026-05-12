@@ -21,7 +21,11 @@ export type RadarProfile = {
   geo_bucket?: string
   trust_score?: number
   gender?: string
+  skin_color?: string
+  height?: number
+  weight?: number
 }
+
 
 // Calculate real position based on geographic coordinates (Haversine for distance)
 function getRealPosition(myBucket: string | undefined, theirBucket: string | undefined, index: number, id: string, maxRangeMeters: number = 2000) {
@@ -485,9 +489,17 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
                     <p className="text-xs text-[#978d9a] font-medium flex items-center gap-2 mt-0.5 capitalize">
                       {selected.age || '20'}y • {selected.gender || 'Explorer'}
                     </p>
+                    {(selected.skin_color || selected.height || selected.weight) && (
+                      <p className="text-[10px] text-[#978d9a]/80 font-medium mt-0.5 capitalize">
+                        {selected.skin_color && `${selected.skin_color} Tone`}
+                        {selected.height && ` • ${selected.height}cm`}
+                        {selected.weight && ` • ${selected.weight}kg`}
+                      </p>
+                    )}
                     <p className="text-[10px] text-[#00D1FF] font-medium mt-1 uppercase tracking-widest opacity-80">
                       Sync: {new Date().toLocaleDateString()} • {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
+
                   </div>
                   <button
                     onClick={close}
