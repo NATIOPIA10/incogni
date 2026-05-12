@@ -41,8 +41,14 @@ export default function ProfileClient({ profile }: ProfileClientProps) {
     fetchVibes()
   }, [])
 
-  const vibes = isEditing ? editedProfile.personality_vibes : (profile?.personality_vibes || [])
+  const vibes = (isEditing ? editedProfile.personality_vibes : (profile?.personality_vibes || []))
+    .filter((v: string) => availableVibes.includes(v))
+
+  const seekingVibes = (isEditing ? editedProfile.seeking_vibes : (profile?.seeking_vibes || []))
+    .filter((v: string) => availableVibes.includes(v))
+  
   const status = profile?.verification_status || 'pending'
+
   
   const getStatusColor = (s: string) => {
     switch (s) {
@@ -272,13 +278,14 @@ export default function ProfileClient({ profile }: ProfileClientProps) {
             </div>
           ) : (
             <div className="flex flex-wrap gap-2">
-              {profile?.seeking_vibes?.length > 0 ? profile.seeking_vibes.map((v: string) => (
+          {seekingVibes.length > 0 ? seekingVibes.map((v: string) => (
                 <span key={v} className="bg-[#003B46]/40 border border-[#00D1FF]/20 px-4 py-1.5 rounded-full text-xs text-[#b0f2ff]">
                   {v}
                 </span>
               )) : (
                 <p className="text-xs text-[#4c444f]">No preferences set yet.</p>
               )}
+
             </div>
           )}
         </div>
