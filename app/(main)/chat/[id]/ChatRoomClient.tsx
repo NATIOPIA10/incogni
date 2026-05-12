@@ -341,7 +341,7 @@ export default function ChatRoomClient({
                   )}
                 </div>
 
-                {!isMe && !isEditing && (
+                {!isEditing && (
                   <button 
                     onClick={() => setReplyTo(msg)}
                     className="opacity-0 group-hover:opacity-100 p-1 mt-2 text-[#4c444f] hover:text-[#00D1FF] transition-all"
@@ -350,6 +350,7 @@ export default function ChatRoomClient({
                   </button>
                 )}
               </div>
+
 
               <div className="flex items-center gap-2 mt-1.5 px-1">
                 <span className="text-[10px] text-[#4c444f] font-medium tracking-tighter uppercase">
