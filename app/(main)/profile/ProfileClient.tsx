@@ -2,11 +2,12 @@
 
 import { GlassCard } from "@/components/ui/GlassCard"
 import { TrustMeter } from "@/components/ui/TrustMeter"
-import { ShieldCheck, Music, Coffee, Book, User, Settings, Save, X, Sparkles, Heart, LogOut } from "lucide-react"
-import { useState } from "react"
+import { ShieldCheck, User, Save, X, Sparkles, LogOut } from "lucide-react"
+import { useState, useEffect } from "react"
 import { updateProfile } from "@/app/actions/profile"
 import { useRouter } from "next/navigation"
 import { signOut } from "@/app/auth/actions"
+import { createClient } from "@/utils/supabase/client"
 
 interface ProfileClientProps {
   profile: any
@@ -14,6 +15,11 @@ interface ProfileClientProps {
 
 export default function ProfileClient({ profile }: ProfileClientProps) {
   const [isEditing, setIsEditing] = useState(false)
+  const [availableVibes, setAvailableVibes] = useState<string[]>([])
+  const [isSaving, setIsSaving] = useState(false)
+  const supabase = createClient()
+  const router = useRouter()
+
   const [editedProfile, setEditedProfile] = useState({
     personality_vibes: profile?.personality_vibes || [],
     preferred_gender: profile?.preferred_gender || 'everyone',
@@ -23,8 +29,17 @@ export default function ProfileClient({ profile }: ProfileClientProps) {
     resonance_radius: profile?.resonance_radius || 0.1,
     seeking_vibes: profile?.seeking_vibes || []
   })
-  const [isSaving, setIsSaving] = useState(false)
-  const router = useRouter()
+
+  useEffect(() => {
+    const fetchVibes = async () => {
+      const { data } = await supabase
+        .from('vibe_definitions')
+        .select('label')
+        .order('label', { ascending: true })
+      if (data) setAvailableVibes(data.map(v => v.label))
+    }
+    fetchVibes()
+  }, [])
 
   const vibes = isEditing ? editedProfile.personality_vibes : (profile?.personality_vibes || [])
   const status = profile?.verification_status || 'pending'
@@ -66,15 +81,6 @@ export default function ProfileClient({ profile }: ProfileClientProps) {
         : [...prev.seeking_vibes, vibe]
     }))
   }
-
-  const availableVibes = [
-    "Music Lover", "Late Night Owl", "Library Regular", "Coffee Addict", "Matcha Fan", 
-    "Night Voyager", "Early Riser", "Sports Fan", "AI Enthusiast", "Book Worm", 
-    "Gamer", "Nature Lover", "Gym Rat", "Artistic Soul", "Tech Geek", 
-    "Startup Mind", "Peace Seeker", "Party Starter", "Foodie", "Pet Parent", 
-    "Dancer", "Movie Buff", "Traveler", "Sustainable", "Fitness Pro", 
-    "Code Master", "Fashionista", "Minimalist", "Photographer", "Yoga Devotee"
-  ]
 
   return (
     <main className="flex flex-col min-h-screen p-6 overflow-y-auto pb-24">

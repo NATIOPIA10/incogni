@@ -7,25 +7,29 @@ import { Button } from "@/components/ui/Button"
 import { HeartPulse, Check } from "lucide-react"
 import { createClient } from "@/utils/supabase/client"
 
-const VIBES = [
-  "Late Night Chats", "Indie Folk", "Sci-Fi Lit", "Gym Rat", 
-  "Matcha Addict", "Tech Geek", "Art Museum Explorer", 
-  "Thrifting", "Horror Movies", "Introvert", "Extrovert"
-]
-
 export default function PersonalitySync() {
   const router = useRouter()
   const supabase = createClient()
+  const [vibes, setVibes] = useState<string[]>([])
   const [step, setStep] = useState<"own" | "seeking">("own")
   const [ownVibes, setOwnVibes] = useState<string[]>([])
   const [seekingVibes, setSeekingVibes] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  // Guard: skip if already complete
   const [checking, setChecking] = useState(true)
 
   useEffect(() => {
     const checkAlreadyDone = async () => {
+      // Fetch Vibe Definitions from DB
+      const { data: vibeData } = await supabase
+        .from('vibe_definitions')
+        .select('label')
+        .order('label', { ascending: true })
+      
+      if (vibeData) {
+        setVibes(vibeData.map(v => v.label))
+      }
+
       const { data: userData } = await supabase.auth.getUser()
       if (!userData.user) { router.replace("/"); return }
 
@@ -34,6 +38,7 @@ export default function PersonalitySync() {
         .select("personality_vibes, seeking_vibes, verification_status")
         .eq("id", userData.user.id)
         .single()
+
 
       // If personality already completed, go straight to radar
       if (
@@ -129,7 +134,8 @@ export default function PersonalitySync() {
         </p>
 
         <div className="flex flex-wrap gap-3 justify-center mb-10">
-          {VIBES.map((vibe) => {
+          {vibes.map((vibe) => {
+
             const isSelected = currentSelection.includes(vibe)
             return (
               <button

@@ -14,12 +14,14 @@ import {
 } from "lucide-react"
 
 import { updateSystemSetting } from "@/app/actions/admin"
+import VibeManager from "./VibeManager"
 
 interface SettingsClientProps {
   initialConfig: any[]
 }
 
 export default function SettingsClient({ initialConfig }: SettingsClientProps) {
+  // ... existing state ...
   const getConfig = (key: string, defaultValue: any) => {
     const item = initialConfig.find(c => c.key === key)
     return item ? item.value : defaultValue
@@ -35,7 +37,6 @@ export default function SettingsClient({ initialConfig }: SettingsClientProps) {
   const handleSaveAll = async () => {
     setIsSaving(true)
     try {
-      // Save everything at once
       await Promise.all([
         updateSystemSetting('maintenance_mode', maintenanceMode),
         updateSystemSetting('allow_signups', allowSignups),
@@ -74,7 +75,7 @@ export default function SettingsClient({ initialConfig }: SettingsClientProps) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2 space-y-6">
+        <div className="md:col-span-2 space-y-8">
           <GlassCard className="p-6 sm:p-8 border-white/5 space-y-8">
             <h2 className="text-xl font-semibold text-white flex items-center gap-3">
               <Globe className="w-5 h-5 text-[#00D1FF]" />
@@ -94,7 +95,7 @@ export default function SettingsClient({ initialConfig }: SettingsClientProps) {
                   <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${maintenanceMode ? 'left-7' : 'left-1'}`} />
                 </button>
               </div>
- 
+
               <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5">
                 <div>
                   <h3 className="text-sm font-semibold text-white">Allow New Signups</h3>
@@ -107,7 +108,7 @@ export default function SettingsClient({ initialConfig }: SettingsClientProps) {
                   <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${allowSignups ? 'left-7' : 'left-1'}`} />
                 </button>
               </div>
- 
+
               <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5">
                 <div>
                   <h3 className="text-sm font-semibold text-white">AI Content Moderation</h3>
@@ -122,6 +123,8 @@ export default function SettingsClient({ initialConfig }: SettingsClientProps) {
               </div>
             </div>
           </GlassCard>
+
+          <VibeManager />
 
           <GlassCard className="p-8 border-white/5 space-y-6">
             <h2 className="text-xl font-semibold text-white flex items-center gap-3">
@@ -155,6 +158,7 @@ export default function SettingsClient({ initialConfig }: SettingsClientProps) {
             </div>
           </GlassCard>
         </div>
+
 
         <div className="space-y-6">
           <GlassCard className="p-6 border-white/5">
