@@ -43,11 +43,18 @@ export async function submitUserReport({
         .from("reports")
         .insert({
           reporter_id: user.id,
-          target_user_id: targetUserId,
+          target_id: targetUserId, // Some older schemas used target_id
           reason: fullReason,
           status: "pending"
         } as any)
-      error = fallbackRes.error
+      
+      if (fallbackRes.error) {
+        // If it still fails, the schema is fundamentally incompatible (e.g. missing target_user_id entirely)
+        return { 
+          error: `Database schema mismatch (${fallbackRes.error.message}). Please run the SQL migration script in your Supabase Dashboard to update the 'reports' table with 'target_user_id', 'reason_category', and 'evidence_text'.` 
+        }
+      }
+      return { success: true }
     }
 
     if (error) {
