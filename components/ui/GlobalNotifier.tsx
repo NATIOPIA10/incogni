@@ -5,6 +5,7 @@ import { createClient } from "@/utils/supabase/client"
 import { usePathname, useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { MessageSquare, X } from "lucide-react"
+import { updateLocation } from "@/app/actions/location"
 
 export function GlobalNotifier({ userId }: { userId: string }) {
   const pathname = usePathname()
@@ -122,7 +123,41 @@ export function GlobalNotifier({ userId }: { userId: string }) {
 
 
   const lastMsgId = useRef<string | null>(null)
+  const lastGpsUpdate = useRef<number>(0)
   const supabase = createClient()
+
+  // Continuous background GPS sync across all active app views
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof navigator === "undefined" || !navigator.geolocation) return;
+
+    let watchId: number | null = null;
+    try {
+      watchId = navigator.geolocation.watchPosition(
+        async (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          const now = Date.now();
+          // Broadcast live location every 15 seconds to keep db fully updated
+          if (now - lastGpsUpdate.current > 15000) {
+            lastGpsUpdate.current = now;
+            await updateLocation(lat, lng).catch(() => {});
+          }
+        },
+        (err) => console.warn("Background GPS tracking paused:", err),
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
+      );
+    } catch (e) {
+      console.warn("Background geolocation init failed:", e);
+    }
+
+    return () => {
+      if (watchId !== null && typeof navigator !== "undefined" && navigator.geolocation) {
+        try {
+          navigator.geolocation.clearWatch(watchId);
+        } catch (e) {}
+      }
+    };
+  }, [userId]);
 
   useEffect(() => {
     const pollMessages = async () => {
