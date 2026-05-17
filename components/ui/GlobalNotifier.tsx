@@ -66,37 +66,59 @@ export function GlobalNotifier({ userId }: { userId: string }) {
 
   // Pre-warm Audio Context on first interaction to bypass autoplay restrictions
   useEffect(() => {
+    if (typeof window === "undefined") return;
     const unlockAudio = () => {
-      if (!audioCtx.current) {
-        audioCtx.current = new (window.AudioContext || (window as any).webkitAudioContext)()
+      try {
+        if (!audioCtx.current) {
+          const AudioClass = window.AudioContext || (window as any).webkitAudioContext;
+          if (AudioClass) {
+            audioCtx.current = new AudioClass();
+          }
+        }
+        if (audioCtx.current?.state === 'suspended') {
+          audioCtx.current.resume().catch(() => {});
+        }
+      } catch (e) {
+        console.warn("Audio unlock failed:", e);
+      } finally {
+        window.removeEventListener('click', unlockAudio);
+        window.removeEventListener('touchstart', unlockAudio);
       }
-      if (audioCtx.current?.state === 'suspended') {
-        audioCtx.current.resume()
-      }
-      window.removeEventListener('click', unlockAudio)
-      window.removeEventListener('touchstart', unlockAudio)
-    }
-    window.addEventListener('click', unlockAudio)
-    window.addEventListener('touchstart', unlockAudio)
+    };
+    window.addEventListener('click', unlockAudio);
+    window.addEventListener('touchstart', unlockAudio);
     return () => {
-      window.removeEventListener('click', unlockAudio)
-      window.removeEventListener('touchstart', unlockAudio)
-    }
-  }, [])
+      window.removeEventListener('click', unlockAudio);
+      window.removeEventListener('touchstart', unlockAudio);
+    };
+  }, []);
 
   useEffect(() => {
-    // Request permission once
-    if ("Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission()
+    if (typeof window === "undefined" || typeof navigator === "undefined") return;
+
+    // Request permission once safely
+    try {
+      if ("Notification" in window && window.Notification && window.Notification.permission === "default") {
+        const promise = window.Notification.requestPermission();
+        if (promise && promise.catch) {
+          promise.catch((err) => console.warn("Notification permission rejection:", err));
+        }
+      }
+    } catch (err) {
+      console.warn("Notification request error on mobile:", err);
     }
     
-    // Register Service Worker
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then(reg => console.log('SW Registered', reg))
-        .catch(err => console.error('SW Error', err))
+    // Register Service Worker safely
+    try {
+      if ('serviceWorker' in navigator && navigator.serviceWorker) {
+        navigator.serviceWorker.register('/sw.js')
+          .then(reg => console.log('SW Registered', reg))
+          .catch(err => console.warn('SW Error in webview', err));
+      }
+    } catch (err) {
+      console.warn("SW register error on mobile:", err);
     }
-  }, [])
+  }, []);
 
 
   const lastMsgId = useRef<string | null>(null)
