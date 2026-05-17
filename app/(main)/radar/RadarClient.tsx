@@ -4,10 +4,11 @@ import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { GlassCard } from "@/components/ui/GlassCard"
-import { X, Zap, ShieldCheck, ShieldAlert, Shield, Radio, RefreshCw } from "lucide-react"
+import { X, Zap, ShieldCheck, ShieldAlert, Shield, Radio, RefreshCw, Flag, AlertTriangle } from "lucide-react"
 import Link from "next/link"
 import { updateLocation } from "@/app/actions/location"
 import { initiateMatch } from "@/app/actions/match"
+import { submitUserReport } from "@/app/actions/report"
 import { TrustMeter } from "@/components/ui/TrustMeter"
 import { createClient } from "@/utils/supabase/client"
 
@@ -25,7 +26,6 @@ export type RadarProfile = {
   height?: number
   weight?: number
 }
-
 
 // Calculate real position based on geographic coordinates (Haversine for distance)
 function getRealPosition(myBucket: string | undefined, theirBucket: string | undefined, index: number, id: string, maxRangeMeters: number = 2000) {
@@ -52,19 +52,9 @@ function getRealPosition(myBucket: string | undefined, theirBucket: string | und
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
   const meters = R * c
 
-  // Bearing for radar angle
   const y = Math.sin(Δλ) * Math.cos(φ2)
   const x = Math.cos(φ1) * Math.sin(φ2) -
             Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ)
-  // Radar UI expects North as top (-90deg), East as right (0deg)
-  // atan2(y, x) gives angle from East (+x) counter-clockwise.
-  // In UI: angle 0 is right, -90 is top.
-  // Our x/y from bearing is standard: y is North-South diff, x is East-West diff? No.
-  // Standard bearing math: y = sin(dLon) * cos(lat2); x = cos(lat1)*sin(lat2) - sin(lat1)*cos(lat2)*cos(dLon)
-  // This gives bearing from North. To map to our UI:
-  // Bearing 0 (N) -> UI -90
-  // Bearing 90 (E) -> UI 0
-  // So: UI_Angle = Bearing - 90
   const bearing = (Math.atan2(y, x) * 180 / Math.PI)
   let angle = bearing - 90
   
@@ -77,8 +67,6 @@ function getRealPosition(myBucket: string | undefined, theirBucket: string | und
   let distancePercentage = (meters / maxRangeMeters) * 100
   distancePercentage += (hash % 6) - 3
 
-  // Prevent overlap: if distance is too close to another or exact, add jitter
-  // The 'index' and 'hash' ensure that even users in the same bucket spread out
   angle += (index * 15) % 30 
   distancePercentage += (index * 5) % 15
 
@@ -88,15 +76,12 @@ function getRealPosition(myBucket: string | undefined, theirBucket: string | und
   return { angle, distance: distancePercentage }
 }
 
-
-// Pick a colour for the glow based on compatibility
 function getVibeColor(compat: number) {
   if (compat >= 70) return "#A855F7" // purple – high match
   if (compat >= 40) return "#00D1FF" // cyan  – medium
   return "#10B981"                   // green – low
 }
 
-// Proximity logic based on Haversine formula
 function getProximityLabel(myBucket?: string, theirBucket?: string) {
   if (!myBucket || !theirBucket) return { label: "Nearby", meters: null, cardinal: "" }
   if (myBucket === theirBucket) return { label: "Very Close", meters: 0, cardinal: "Nearby" }
@@ -104,7 +89,7 @@ function getProximityLabel(myBucket?: string, theirBucket?: string) {
   const [lat1, lon1] = myBucket.split(",").map(Number)
   const [lat2, lon2] = theirBucket.split(",").map(Number)
   
-  const R = 6371e3 // Earth's radius in meters
+  const R = 6371e3
   const phi1 = lat1 * Math.PI / 180
   const phi2 = lat2 * Math.PI / 180
   const dLat = (lat2 - lat1) * Math.PI / 180
@@ -118,7 +103,6 @@ function getProximityLabel(myBucket?: string, theirBucket?: string) {
 
   const meters = R * c
   
-  // Calculate cardinal direction
   const y = Math.sin(dLon) * Math.cos(phi2)
   const x = Math.cos(phi1) * Math.sin(phi2) -
             Math.sin(phi1) * Math.cos(phi2) * Math.cos(dLon)
@@ -154,6 +138,12 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
   const notifiedUsers = useRef<Set<string>>(new Set())
   const supabase = createClient()
   
+  // Report State
+  const [isReportOpen, setIsReportOpen] = useState(false)
+  const [reportReason, setReportReason] = useState("harassment")
+  const [reportEvidence, setReportEvidence] = useState("")
+  const [isReporting, setIsReporting] = useState(false)
+
   useEffect(() => {
     const fetchVibes = async () => {
       const { data } = await supabase
@@ -164,12 +154,9 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
     fetchVibes()
   }, [])
 
-  
   const router = useRouter()
   const watchId = useRef<number | null>(null)
   const lastUpdate = useRef<number>(0)
-  
-  // Audio context ref for synthesizer
   const audioCtx = useRef<AudioContext | null>(null)
 
   const playPingSound = () => {
@@ -183,7 +170,7 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
     const gainNode = ctx.createGain()
     
     osc.type = 'sine'
-    osc.frequency.setValueAtTime(880, ctx.currentTime) // A5 note
+    osc.frequency.setValueAtTime(880, ctx.currentTime)
     osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.1)
     
     gainNode.gain.setValueAtTime(0, ctx.currentTime)
@@ -197,7 +184,6 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
     osc.stop(ctx.currentTime + 1.5)
   }
 
-  // Request Notification permission
   useEffect(() => {
     if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission()
@@ -205,12 +191,10 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
   }, [])
 
   useEffect(() => {
-    // Sync initial profiles to live profiles when props change
     setLiveProfiles(profiles)
   }, [profiles])
 
   useEffect(() => {
-    // Supabase Realtime Subscription
     const supabase = createClient()
     const channel = supabase
       .channel('radar-sync')
@@ -243,7 +227,6 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
     }
   }, [])
 
-  // Auto-start tracking on mount
   useEffect(() => {
     startTracking()
     return () => {
@@ -263,7 +246,6 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
         const lng = pos.coords.longitude
         setMyLiveBucket(`${lat},${lng}`)
         
-        // Throttle DB updates to once every 10 seconds
         const now = Date.now()
         if (now - lastUpdate.current > 10000) {
           lastUpdate.current = now
@@ -290,28 +272,47 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
     }
   }
 
-  // Close the detail card when tapping the backdrop
-  const close = () => setSelected(null)
+  const close = () => {
+    setSelected(null)
+    setIsReportOpen(false)
+  }
 
-  // Unified list of users within range
+  const handleReportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selected?.id) return alert("Target profile ID missing.")
+
+    try {
+      setIsReporting(true)
+      await submitUserReport({
+        targetUserId: selected.id,
+        reasonCategory: reportReason,
+        evidenceText: reportEvidence
+      })
+      alert("Report successfully filed. Our moderation team will investigate shortly.")
+      setIsReportOpen(false)
+      setReportEvidence("")
+    } catch (err: any) {
+      alert("Failed to submit report: " + err.message)
+    } finally {
+      setIsReporting(false)
+    }
+  }
+
   const [tempMaxRange, setTempMaxRange] = useState<number | null>(null)
   const maxRange = tempMaxRange || Math.max(myRadius * 1000, 10)
   
-  // 1. Filter out users without any location and outside of max range
   const usersInRange = liveProfiles.filter(p => {
     const effectiveMyBucket = myLiveBucket || myBucket
     const { meters } = getProximityLabel(effectiveMyBucket, p.geo_bucket)
     return meters !== null && meters <= maxRange
   })
 
-  // 2. Filter by preferences for the actual display
   const nearbyProfiles = usersInRange.filter(p => {
     const myPref = myProfile?.preferred_gender
     if (myPref && myPref !== "everyone" && p.gender !== myPref) return false
     return true
   })
 
-  // 3. Trigger Notifications for High Resonance
   useEffect(() => {
     let triggered = false
     nearbyProfiles.forEach(p => {
@@ -339,9 +340,7 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
 
   return (
     <div className="flex flex-col items-center w-full h-full relative">
-      {/* ── Radar canvas ─────────────────────────────── */}
       <div className="relative flex items-center justify-center w-72 h-72 mt-6">
-        {/* Top-left Refresh Button */}
         <div className="absolute top-2 left-2 z-30">
           <button
             onClick={() => {
@@ -360,7 +359,6 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
           </button>
         </div>
 
-        {/* Top-right Status & Tracking */}
         <div className="absolute top-2 right-2 z-30 flex items-center gap-2">
           {isTracking && (
             <span className="text-[10px] uppercase font-bold text-[#10B981] animate-pulse bg-[#10B981]/20 px-2 py-1 rounded-full border border-[#10B981]/40">
@@ -394,7 +392,6 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
           </motion.div>
         </motion.div>
 
-        {/* Concentric rings */}
         {[1, 2, 3].map((ring) => (
           <motion.div
             key={ring}
@@ -405,7 +402,6 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
           />
         ))}
 
-        {/* Pulsing outer ring */}
         {[1, 2].map((r) => (
           <motion.div
             key={`pulse-${r}`}
@@ -417,23 +413,19 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
           />
         ))}
 
-        {/* Center dot = me */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-[#00D1FF] shadow-[0_0_20px_#00D1FF] z-20" />
 
-        {/* Profile blips */}
         {(() => {
           const positions = nearbyProfiles.map((profile, i) => {
             const { angle, distance } = getRealPosition(myLiveBucket, profile.geo_bucket, i, profile.id, maxRange)
             const radians = (angle * Math.PI) / 180
-            // radar is 288px wide → max radius ≈ 130px; distance is 30-70 → scale 0.3-0.7
             const radius = (distance / 100) * 130
             const x = Math.cos(radians) * radius
             const y = Math.sin(radians) * radius
             return { profile, x, y, i }
           })
 
-          // Apply forces to separate overlapping markers
-          const minDistance = 45; // 40px avatar width/height + 5px spacing
+          const minDistance = 45;
           for (let iter = 0; iter < 10; iter++) {
             let moved = false;
             for (let i = 0; i < positions.length; i++) {
@@ -454,7 +446,6 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
                   p2.x -= Math.cos(pushAngle) * pushDist;
                   p2.y -= Math.sin(pushAngle) * pushDist;
 
-                  // Constrain back to the radar radius (130px max)
                   const r1 = Math.sqrt(p1.x * p1.x + p1.y * p1.y);
                   if (r1 > 130) {
                     p1.x = (p1.x / r1) * 130;
@@ -487,12 +478,10 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
                 onClick={() => setSelected(profile)}
                 aria-label={`View profile with ${profile.compatibility}% compatibility`}
               >
-                {/* Glow halo */}
                 <div
                   className="absolute w-10 h-10 rounded-full blur-md opacity-60"
                   style={{ background: color }}
                 />
-                {/* Glass disc */}
                 <GlassCard className="w-10 h-10 rounded-full relative border flex items-center justify-center overflow-hidden"
                   style={{ borderColor: `${color}60` }}>
                   <span className="text-[10px] font-bold" style={{ color }}>
@@ -505,7 +494,6 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
         })()}
       </div>
 
-      {/* Status text */}
       <div className="mt-6 text-center" key={`status-${nearbyProfiles.length}-${myLiveBucket}`}>
         <p className="text-[#cec3d0] text-sm">
           {!hasLocation 
@@ -519,15 +507,11 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
             {nearbyProfiles.length} {nearbyProfiles.length === 1 ? "connection" : "connections"} nearby
           </p>
         )}
-        
       </div>
-      {/* v1.0.1-clean-ui */}
 
-      {/* ── Profile detail drawer ─────────────────────── */}
       <AnimatePresence>
         {selected && (
           <>
-            {/* Backdrop */}
             <motion.div
               className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30"
               initial={{ opacity: 0 }}
@@ -536,16 +520,15 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
               onClick={close}
             />
 
-            {/* Sheet */}
             <motion.div
-              className="fixed bottom-24 left-4 right-4 z-40 rounded-2xl"
+              className="fixed bottom-24 left-4 right-4 z-40 rounded-2xl max-h-[85vh] overflow-y-auto"
               initial={{ y: 80, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 80, opacity: 0 }}
               transition={{ type: "spring", damping: 22, stiffness: 280 }}
             >
               <GlassCard className="p-6 border-white/10">
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-start justify-between mb-2">
                   <div className="flex flex-col">
                     <h2 className="font-display text-2xl font-bold text-white tracking-tight">
                       {selected.display_name || 'Anonymous Voyager'}
@@ -563,18 +546,26 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
                     <p className="text-[10px] text-[#00D1FF] font-medium mt-1 uppercase tracking-widest opacity-80">
                       Sync: {new Date().toLocaleDateString()} • {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
-
                   </div>
-                  <button
-                    onClick={close}
-                    className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors border border-white/10"
-                    aria-label="Close"
-                  >
-                    <X className="w-5 h-5 text-white" />
-                  </button>
+                  
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setIsReportOpen(true)}
+                      className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-[#F43F5E]/20 text-[#978d9a] hover:text-[#F43F5E] hover:border-[#F43F5E]/40 transition-colors border border-white/10"
+                      title="Report Profile"
+                    >
+                      <ShieldAlert className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={close}
+                      className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors border border-white/10"
+                      aria-label="Close"
+                    >
+                      <X className="w-5 h-5 text-white" />
+                    </button>
+                  </div>
                 </div>
 
-                {/* Compatibility Badge */}
                 <div className="flex items-center gap-2 mb-6">
                   <div className="flex items-center gap-1.5 bg-[#A855F7]/20 px-3 py-1 rounded-full border border-[#A855F7]/30">
                     <Zap className="w-4 h-4 text-[#A855F7]" />
@@ -600,7 +591,6 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
                   })()}
                 </div>
 
-                {/* Trust Meter */}
                 <div className="mb-6 p-3 bg-white/5 rounded-xl border border-white/10">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-1.5">
@@ -624,7 +614,6 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
                   <TrustMeter level={selected.trust_score ?? 0} />
                 </div>
 
-                {/* Shared vibes */}
                 {(() => {
                   const shared = (selected.personality_vibes ?? [])
                     .filter(v => (myProfile?.personality_vibes || []).includes(v))
@@ -644,7 +633,6 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
                   ) : null
                 })()}
 
-                {/* Their vibes */}
                 {(() => {
                   const filteredTheirVibes = (selected.personality_vibes ?? [])
                     .filter(v => availableVibes.includes(v))
@@ -662,7 +650,6 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
                     </div>
                   ) : null
                 })()}
-
 
                 <p className="text-[#978d9a] text-[10px] mt-4 text-center leading-relaxed">
                   Profiles are anonymous to protect privacy. Connect to reveal more.
@@ -702,6 +689,84 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
           </>
         )}
       </AnimatePresence>
+
+      {/* Safety Report Modal */}
+      {isReportOpen && selected && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <GlassCard className="w-full max-w-lg border-white/10 p-6 sm:p-8 space-y-6 shadow-2xl relative">
+            <button 
+              onClick={() => setIsReportOpen(false)}
+              className="absolute top-6 right-6 p-2 rounded-full bg-white/5 hover:bg-white/10 text-[#978d9a] hover:text-white transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-4 border-b border-white/5 pb-6">
+              <div className="w-12 h-12 rounded-2xl bg-[#F43F5E]/10 border border-[#F43F5E]/20 flex items-center justify-center text-[#F43F5E]">
+                <Flag className="w-6 h-6" />
+              </div>
+              <div>
+                <h2 className="text-xl font-display font-bold text-white tracking-wide">Report Citizen</h2>
+                <p className="text-xs text-[#978d9a] mt-0.5">Submit an official incident report for moderation review</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleReportSubmit} className="space-y-6">
+              <div>
+                <label className="block text-xs uppercase font-bold tracking-widest text-[#cec3d0] mb-2">Reason Category</label>
+                <select 
+                  value={reportReason} 
+                  onChange={(e) => setReportReason(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#F43F5E]/50 focus:outline-none transition-all"
+                >
+                  <option value="harassment" className="bg-[#12151c]">Harassment or Threatening Behavior</option>
+                  <option value="inappropriate_content" className="bg-[#12151c]">Inappropriate Content or Nudity</option>
+                  <option value="spam_scam" className="bg-[#12151c]">Spam, Scam, or Solicitation</option>
+                  <option value="fake_profile" className="bg-[#12151c]">Fake Profile or Impersonation</option>
+                  <option value="other" className="bg-[#12151c]">Other Safety Violation</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs uppercase font-bold tracking-widest text-[#cec3d0] mb-2">Evidence & Details</label>
+                <textarea 
+                  value={reportEvidence}
+                  onChange={(e) => setReportEvidence(e.target.value)}
+                  rows={4}
+                  placeholder="Provide context or specific details to help our moderation team investigate..."
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#F43F5E]/50 focus:outline-none transition-all placeholder:text-[#4c444f]"
+                  required
+                />
+              </div>
+
+              <div className="p-4 rounded-xl bg-[#F43F5E]/10 border border-[#F43F5E]/20 flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-[#F43F5E] shrink-0 mt-0.5" />
+                <p className="text-xs text-[#978d9a] leading-relaxed">
+                  Verified reports isolate the reported profile and notify our moderation staff immediately. All investigations remain completely confidential.
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2 border-t border-white/5">
+                <button 
+                  type="button"
+                  onClick={() => setIsReportOpen(false)}
+                  className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold text-xs uppercase tracking-widest transition-all"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  disabled={isReporting}
+                  className="px-6 py-2.5 rounded-xl bg-[#F43F5E] hover:brightness-110 text-white font-bold text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(244,63,94,0.4)] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isReporting ? "Filing..." : "Submit Official Report"}
+                </button>
+              </div>
+            </form>
+          </GlassCard>
+        </div>
+      )}
     </div>
   )
 }
+
