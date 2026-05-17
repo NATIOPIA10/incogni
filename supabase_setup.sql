@@ -170,10 +170,13 @@ CREATE TABLE public.reports (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
   reporter_id UUID REFERENCES public.profiles(id),
   target_user_id UUID REFERENCES public.profiles(id),
-  reason_category TEXT NOT NULL,
+  reason_category TEXT NOT NULL DEFAULT 'other',
   evidence_text TEXT,
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'investigating', 'resolved', 'dismissed')),
-  moderator_notes TEXT
+  moderator_notes TEXT,
+  resolution_notes TEXT,
+  resolved_at TIMESTAMP WITH TIME ZONE,
+  resolved_by UUID REFERENCES public.profiles(id)
 );
 
 CREATE TABLE public.system_config (
