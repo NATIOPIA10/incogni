@@ -139,3 +139,79 @@ export async function updateSystemSetting(key: string, value: any) {
 
   revalidatePath("/admin/settings")
 }
+
+export async function updateReportStatus(reportId: string, status: 'investigating' | 'resolved' | 'dismissed', notes?: string) {
+  const { supabase, adminId } = await checkAdmin()
+
+  const { error } = await supabase
+    .from("reports")
+    .update({ 
+      status,
+      resolution_notes: notes || `Marked as ${status} by admin`,
+      resolved_at: status !== 'investigating' ? new Date().toISOString() : null,
+      resolved_by: adminId
+    })
+    .eq("id", reportId)
+
+  if (error) throw error
+
+  await supabase.from("admin_logs").insert({
+    admin_id: adminId,
+    action_type: `REPORT_${status.toUpperCase()}`,
+    reason: `Report ${reportId} updated to ${status}. Notes: ${notes || 'None'}`
+  })
+
+  revalidatePath("/admin/moderation")
+  revalidatePath("/admin")
+}
+
+export async function warnUser(userId: string, warningMessage: string) {
+  const { supabase, adminId } = await checkAdmin()
+
+  // Insert a notification or message to the user
+  const { error } = await supabase
+    .from("notifications")
+    .insert({
+      user_id: userId,
+      type: 'admin_warning',
+      title: 'Official Warning from Moderation',
+      content: warningMessage,
+      created_at: new Date().toISOString()
+    })
+
+  if (error) {
+    console.error("Failed to insert notification:", error)
+    // If notifications table doesn't exist or failed, log to admin logs
+  }
+
+  await supabase.from("admin_logs").insert({
+    admin_id: adminId,
+    action_type: 'WARN_USER',
+    target_user_id: userId,
+    reason: warningMessage
+  })
+
+  revalidatePath("/admin/users")
+}
+
+export async function updateUserTrustScore(userId: string, trustScore: number) {
+  const { supabase, adminId } = await checkAdmin()
+
+  const clampedScore = Math.max(0, Math.min(100, trustScore))
+  const { error } = await supabase
+    .from("profiles")
+    .update({ trust_score: clampedScore })
+    .eq("id", userId)
+
+  if (error) throw error
+
+  await supabase.from("admin_logs").insert({
+    admin_id: adminId,
+    action_type: 'UPDATE_TRUST_SCORE',
+    target_user_id: userId,
+    reason: `Admin manually adjusted trust score to ${clampedScore}%`
+  })
+
+  revalidatePath("/admin/users")
+}
+
