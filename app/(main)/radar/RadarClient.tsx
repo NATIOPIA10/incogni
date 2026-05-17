@@ -33,13 +33,17 @@ function getRealPosition(myBucket: string | undefined, theirBucket: string | und
 
   if (!myBucket || !theirBucket) {
     const angle = ((hash * 137.5 + index * 60) % 360) 
-    const distance = 30 + (hash % 40)
+    const distance = 40 + (hash % 40)
     return { angle, distance }
   }
   
   const [lat1, lon1] = myBucket.split(",").map(Number)
   const [lat2, lon2] = theirBucket.split(",").map(Number)
   
+  if (isNaN(lat1) || isNaN(lon1) || isNaN(lat2) || isNaN(lon2)) {
+    return { angle: (hash * 137.5) % 360, distance: 50 }
+  }
+
   const R = 6371e3
   const φ1 = lat1 * Math.PI / 180
   const φ2 = lat2 * Math.PI / 180
@@ -49,29 +53,18 @@ function getRealPosition(myBucket: string | undefined, theirBucket: string | und
   const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
             Math.cos(φ1) * Math.cos(φ2) *
             Math.sin(Δλ / 2) * Math.sin(Δλ / 2)
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-  const meters = R * c
+  const c = 2 * Math.atan2(Math.sqrt(Math.min(1, Math.max(0, a))), Math.sqrt(Math.max(0, 1 - a)))
+  const meters = Math.max(0, R * c)
 
   const y = Math.sin(Δλ) * Math.cos(φ2)
   const x = Math.cos(φ1) * Math.sin(φ2) -
             Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ)
-  const bearing = (Math.atan2(y, x) * 180 / Math.PI)
-  let angle = bearing - 90
+  const bearing = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360
+  const angle = bearing - 90
   
-  if (meters === 0) {
-    angle = (hash * 137.5) % 360
-  } else {
-    angle += (hash % 20) - 10 // small jitter
-  }
-
-  let distancePercentage = (meters / maxRangeMeters) * 100
-  distancePercentage += (hash % 6) - 3
-
-  angle += (index * 15) % 30 
-  distancePercentage += (index * 5) % 15
-
+  let distancePercentage = (meters / Math.max(1, maxRangeMeters)) * 100
   if (distancePercentage > 95) distancePercentage = 95
-  if (distancePercentage < 15) distancePercentage = 15 + (hash % 10) 
+  if (distancePercentage < 15) distancePercentage = 15 + (hash % 10)
   
   return { angle, distance: distancePercentage }
 }
@@ -89,6 +82,10 @@ function getProximityLabel(myBucket?: string, theirBucket?: string) {
   const [lat1, lon1] = myBucket.split(",").map(Number)
   const [lat2, lon2] = theirBucket.split(",").map(Number)
   
+  if (isNaN(lat1) || isNaN(lon1) || isNaN(lat2) || isNaN(lon2)) {
+    return { label: "Nearby", meters: null, cardinal: "" }
+  }
+
   const R = 6371e3
   const phi1 = lat1 * Math.PI / 180
   const phi2 = lat2 * Math.PI / 180
@@ -99,9 +96,9 @@ function getProximityLabel(myBucket?: string, theirBucket?: string) {
             Math.cos(phi1) * Math.cos(phi2) *
             Math.sin(dLon / 2) * Math.sin(dLon / 2)
   const safeA = Math.min(1, Math.max(0, a))
-  const c = 2 * Math.atan2(Math.sqrt(safeA), Math.sqrt(1 - safeA))
+  const c = 2 * Math.atan2(Math.sqrt(safeA), Math.sqrt(Math.max(0, 1 - safeA)))
 
-  const meters = R * c
+  const meters = Math.max(0, Math.round(R * c))
   
   const y = Math.sin(dLon) * Math.cos(phi2)
   const x = Math.cos(phi1) * Math.sin(phi2) -
@@ -160,33 +157,49 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
   const audioCtx = useRef<AudioContext | null>(null)
 
   const playPingSound = () => {
-    if (!audioCtx.current) {
-      audioCtx.current = new (window.AudioContext || (window as any).webkitAudioContext)()
-    }
-    const ctx = audioCtx.current
-    if (ctx.state === 'suspended') ctx.resume()
+    try {
+      if (typeof window === "undefined") return;
+      const AudioClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioClass) return;
+      if (!audioCtx.current) {
+        audioCtx.current = new AudioClass();
+      }
+      const ctx = audioCtx.current;
+      if (ctx && ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+      }
 
-    const osc = ctx.createOscillator()
-    const gainNode = ctx.createGain()
-    
-    osc.type = 'sine'
-    osc.frequency.setValueAtTime(880, ctx.currentTime)
-    osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.1)
-    
-    gainNode.gain.setValueAtTime(0, ctx.currentTime)
-    gainNode.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.05)
-    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.5)
-    
-    osc.connect(gainNode)
-    gainNode.connect(ctx.destination)
-    
-    osc.start()
-    osc.stop(ctx.currentTime + 1.5)
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.1);
+      
+      gainNode.gain.setValueAtTime(0, ctx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.05);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.5);
+      
+      osc.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      
+      osc.start();
+      osc.stop(ctx.currentTime + 1.5);
+    } catch (e) {
+      console.warn("Radar audio ping error:", e);
+    }
   }
 
   useEffect(() => {
-    if ("Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission()
+    try {
+      if (typeof window !== "undefined" && "Notification" in window && window.Notification && window.Notification.permission === "default") {
+        const promise = window.Notification.requestPermission();
+        if (promise && promise.catch) {
+          promise.catch(err => console.warn("Notification permission error:", err));
+        }
+      }
+    } catch (e) {
+      console.warn("Mobile notification permission error:", e);
     }
   }, [])
 
@@ -318,27 +331,33 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
   })
 
   useEffect(() => {
-    let triggered = false
-    nearbyProfiles.forEach(p => {
-      if (p.compatibility > 50 && !notifiedUsers.current.has(p.id)) {
-        notifiedUsers.current.add(p.id)
-        triggered = true
-        
-        if ("Notification" in window && Notification.permission === "granted") {
-          const options: any = {
-            body: `A ${p.compatibility}% resonance match is nearby!`,
-            icon: "/icon.png",
-            vibrate: [200, 100, 200]
+    try {
+      let triggered = false;
+      nearbyProfiles.forEach(p => {
+        if (p.compatibility > 50 && !notifiedUsers.current.has(p.id)) {
+          notifiedUsers.current.add(p.id);
+          triggered = true;
+          
+          if (typeof window !== "undefined" && "Notification" in window && window.Notification && window.Notification.permission === "granted") {
+            try {
+              const options: any = {
+                body: `A ${p.compatibility}% resonance match is nearby!`,
+                icon: "/icon.png",
+                vibrate: [200, 100, 200]
+              };
+              new window.Notification("Incogni Resonance Alert!", options);
+            } catch (err) {}
           }
-          new Notification("Incogni Resonance Alert!", options)
         }
+      });
+      
+      if (triggered) {
+        playPingSound();
       }
-    })
-    
-    if (triggered) {
-      playPingSound()
+    } catch (e) {
+      console.warn("Nearby profile alert error:", e);
     }
-  }, [nearbyProfiles])
+  }, [nearbyProfiles]);
 
   const hasLocation = !!(myLiveBucket || myBucket)
 
