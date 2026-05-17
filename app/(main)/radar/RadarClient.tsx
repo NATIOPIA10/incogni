@@ -283,14 +283,18 @@ export default function RadarClient({ profiles, myBucket, myRadius, myProfile }:
 
     try {
       setIsReporting(true)
-      await submitUserReport({
+      const res = await submitUserReport({
         targetUserId: selected.id,
         reasonCategory: reportReason,
         evidenceText: reportEvidence
       })
-      alert("Report successfully filed. Our moderation team will investigate shortly.")
-      setIsReportOpen(false)
-      setReportEvidence("")
+      if (res.error) {
+        alert("Failed to submit report: " + res.error)
+      } else {
+        alert("Report successfully filed. Our moderation team will investigate shortly.")
+        setIsReportOpen(false)
+        setReportEvidence("")
+      }
     } catch (err: any) {
       alert("Failed to submit report: " + err.message)
     } finally {
